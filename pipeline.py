@@ -21,9 +21,23 @@ logging.basicConfig(
     level=LOG_LEVEL
 )
 
+def ingest_csv(file_path, separator):
+    """Ingest CSV data.
+
+    Args:
+        file_path (str): The path of the CSV file.
+        separator (str): The separator in the CSV file.
+
+    Returns:
+        df (dataframe): The pandas dataframe of imported data.
+    """
+    df = pd.read_csv(file_path, sep=separator, dtype="string")
+    return df
+
 if __name__ == "__main__":
     # Ingest CSV data
     logging.info('Ingest CSV data.')
+    df_source = ingest_csv(CSV_PATH, CSV_DATA_SEPARATOR)
     # Cleanse data
     logging.info('Cleanse data.')
     # Deduplicate records
