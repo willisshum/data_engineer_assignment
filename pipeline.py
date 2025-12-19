@@ -3,8 +3,9 @@ import os
 import logging
 import pandas as pd
 import re
+from datetime import date
 
-from reference_value import LIST_ENTITY_TYPE, REGEX_PATTERN_REGISTRATION_NUMBER
+from reference_value import LIST_ENTITY_TYPE, REGEX_PATTERN_REGISTRATION_NUMBER, REGEX_PATTERN_DATE_FORMAT, DATE_FORMAT_CODE_OUTPUT
 
 load_dotenv()
 DICT_LOG_LEVEL_REFERENCE = {
@@ -53,10 +54,13 @@ def cleanse_data(df_original):
     df_processing = process_entityType(df_processing)
     logging.info('- Process column registrationNumber.')
     df_processing = process_registrationNumber(df_processing)
+    logging.info('- Process column IncorporationDate.')
+    df_processing = process_incorporationDate(df_processing)
     df_processing["reject"] = df_processing[[
         "EntityName_reject",
         "EntityType_reject",
-        "RegistrationNumber_reject"
+        "RegistrationNumber_reject",
+        "IncorporationDate_reject"
         ]].all()
     return df_processing
 
@@ -117,6 +121,77 @@ def process_registrationNumber(df_processing):
     # Validate RegistrationNumber as expected format or not, reject when it is fail
     df_processing["RegistrationNumber_reject"] = df_processing["RegistrationNumber"].apply(lambda x: True if x is not pd.NA and re.fullmatch(REGEX_PATTERN_REGISTRATION_NUMBER, x) is None else False)
     return df_processing
+
+def process_incorporationDate(df_processing):
+    """Process column IncorporationDate.
+
+    Args:
+        df_processing (dataframe): The pandas dataframe of processing data.
+
+    Returns:
+        df_processing (dataframe): The pandas dataframe of processing data.
+    """
+    if "IncorporationDate" not in df_processing.columns:
+        logging.error('-- Column "IncorporationDate" is missed in CSV data.')
+        raise Exception("CSV data has missed some columns")
+    # Remove whitespace
+    df_processing["IncorporationDate"] = df_processing["IncorporationDate"].apply(lambda x: x.strip() if x is not pd.NA else x, by_row='compat').astype("string")
+    # Revise date format if necessary
+    df_processing["IncorporationDate"] = df_processing["IncorporationDate"].apply(lambda x: revise_date_format(x) if x is not pd.NA else x, by_row='compat').astype("string")
+    # Validate IncorporationDate as expected format or not, reject when it is fail
+    df_processing["IncorporationDate_reject"] = df_processing["IncorporationDate"].apply(lambda x: True if x is not pd.NA and re.fullmatch(REGEX_PATTERN_DATE_FORMAT, x) is None else False)
+    return df_processing
+
+def revise_date_format(input_str):
+    """Revise the date format of the input string. Put MM/DD/YY as the highest priority due to largest usage in sample data.
+
+    Args:
+        input_str (string): Input string with date format
+
+    Returns:
+        (string): Output string with align date format
+    """
+    list_date_format = [
+        {
+            "code": "%m/%d/%y",
+            "debug_message": "MM/DD/YY"
+        },
+        {
+            "code": "%m/%d/%Y",
+            "debug_message": "MM/DD/YYYY"
+        },
+        {
+            "code": "%d/%m/%y",
+            "debug_message": "DD/MM/YY"
+        },
+        {
+            "code": "%d/%m/%Y",
+            "debug_message": "DD/MM/YYYY"
+        },
+        {
+            "code": "%m-%d-%y",
+            "debug_message": "MM-DD-YY"
+        },
+        {
+            "code": "%m-%d-%Y",
+            "debug_message": "MM-DD-YYYY"
+        },
+        {
+            "code": "%Y-%m-%d",
+            "debug_message": "YYYY-MM-DD"
+        },
+        {
+            "code": "%d-%b-%y",
+            "debug_message": "DD-MMM-YY"
+        },
+    ]
+    for item in list_date_format:
+        try:
+            temp = date.strptime(input_str, item["code"])
+            return temp.strftime(DATE_FORMAT_CODE_OUTPUT)
+        except ValueError:
+            logging.debug(f'-- string {input_str} is not in the date format {item["debug_message"]}.')
+    return input_str
 
 if __name__ == "__main__":
     # Ingest CSV data

@@ -3,7 +3,7 @@ import pandas as pd
 import re
 from pandas.testing import assert_frame_equal
 
-from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber
+from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber, process_incorporationDate
 
 class TestPipeLine(unittest.TestCase):
     def test_ingest_csv(self):
@@ -186,6 +186,58 @@ class TestPipeLine(unittest.TestCase):
         df_testing = pd.DataFrame(data_testing, dtype=pd.StringDtype())
         df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
         df_testing = process_registrationNumber(df_testing)
+        assert_frame_equal(df_testing, df_expected)
+
+    def test_process_incorporationDate(self):
+        """Test that it can process IncorporationDate.
+        """
+        data_testing = {
+            "IncorporationDate": [
+                "9/17/21",
+                "18/6/18",
+                "9/17/2021",
+                "18/6/2018",
+                "11-26-17",
+                "11-26-2017",
+                "2017-11-26",
+                "2-Nov-20",
+                "asdf",
+                None
+            ]
+        }
+        data_expected = {
+            "IncorporationDate": [
+                "2021-09-17",
+                "2018-06-18",
+                "2021-09-17",
+                "2018-06-18",
+                "2017-11-26",
+                "2017-11-26",
+                "2017-11-26",
+                "2020-11-02",
+                "asdf",
+                None
+            ],
+            "IncorporationDate_reject": [
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                True,
+                False
+            ]
+        }
+        dtype_mapping = {
+            "IncorporationDate": "string",
+            "IncorporationDate_reject": "bool"
+        }
+        df_testing = pd.DataFrame(data_testing, dtype=pd.StringDtype())
+        df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
+        df_testing = process_incorporationDate(df_testing)
         assert_frame_equal(df_testing, df_expected)
 
 if __name__ == "__main__":
