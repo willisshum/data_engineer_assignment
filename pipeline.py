@@ -3,6 +3,8 @@ import os
 import logging
 import pandas as pd
 
+from reference_value import LIST_ENTITY_TYPE
+
 load_dotenv()
 DICT_LOG_LEVEL_REFERENCE = {
     "CRITICAL": logging.CRITICAL,
@@ -46,8 +48,11 @@ def cleanse_data(df_original):
     df_processing = df_original.copy(deep=True)
     logging.info('- Process column entityName.')
     df_processing = process_entityName(df_processing)
+    logging.info('- Process column entityType.')
+    df_processing = process_entityType(df_processing)
     df_processing["reject"] = df_processing[[
-        "EntityName_reject"
+        "EntityName_reject",
+        "EntityType_reject"
         ]].all()
     return df_processing
 
@@ -67,6 +72,26 @@ def process_entityName(df_processing):
     df_processing["EntityName"] = df_processing["EntityName"].apply(lambda x: x.strip() if x is not pd.NA else x, by_row='compat').astype("string")
     # Validate EntityName contains value or not, reject when it is fail
     df_processing["EntityName_reject"] = df_processing["EntityName"].apply(lambda x: True if x is pd.NA or x == "" or x == " " else False)
+    return df_processing
+
+def process_entityType(df_processing):
+    """Process column EntityType.
+
+    Args:
+        df_processing (dataframe): The pandas dataframe of processing data.
+
+    Returns:
+        df_processing (dataframe): The pandas dataframe of processing data.
+    """
+    if "EntityType" not in df_processing.columns:
+        logging.error('-- Column "EntityType" is missed in CSV data.')
+        raise Exception("CSV data has missed some columns")
+    # Remove whitespace
+    df_processing["EntityType"] = df_processing["EntityType"].apply(lambda x: x.strip() if x is not pd.NA else x, by_row='compat').astype("string")
+    # Uppercase the first letter and lowercase the remaining letters
+    df_processing["EntityType"] = df_processing["EntityType"].apply(lambda x: x[0].upper() + x[1:].lower() if x is not pd.NA else x, by_row='compat').astype("string")
+    # Validate EntityType as expected value or not, reject when it is fail
+    df_processing["EntityType_reject"] = df_processing["EntityType"].apply(lambda x: True if x is pd.NA or x not in LIST_ENTITY_TYPE else False)
     return df_processing
 
 if __name__ == "__main__":

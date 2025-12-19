@@ -3,7 +3,7 @@ import pandas as pd
 import re
 from pandas.testing import assert_frame_equal
 
-from pipeline import ingest_csv, cleanse_data, process_entityName
+from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType
 
 class TestPipeLine(unittest.TestCase):
     def test_ingest_csv(self):
@@ -97,6 +97,55 @@ class TestPipeLine(unittest.TestCase):
         df_testing = pd.DataFrame(data_testing, dtype=pd.StringDtype())
         df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
         df_testing = process_entityName(df_testing)
+        assert_frame_equal(df_testing, df_expected)
+
+    def test_process_entityType(self):
+        """Test that it can process EntityType.
+        """
+        data_testing = {
+            "EntityType": [
+                "Company",
+                "Nonprofit",
+                "Partnership",
+                "Trust",
+                "nonprofit",
+                "pARTNERSHIP",
+                "Trust2",
+                "tRUST3",
+                None
+            ]
+        }
+        data_expected = {
+            "EntityType": [
+                "Company",
+                "Nonprofit",
+                "Partnership",
+                "Trust",
+                "Nonprofit",
+                "Partnership",
+                "Trust2",
+                "Trust3",
+                None
+            ],
+            'EntityType_reject': [
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                True,
+                True,
+                True
+            ]
+        }
+        dtype_mapping = {
+            "EntityType": "string",
+            "EntityType_reject": "bool"
+        }
+        df_testing = pd.DataFrame(data_testing, dtype=pd.StringDtype())
+        df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
+        df_testing = process_entityType(df_testing)
         assert_frame_equal(df_testing, df_expected)
 
 if __name__ == "__main__":
