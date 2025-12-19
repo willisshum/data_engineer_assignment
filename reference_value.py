@@ -4,3 +4,5 @@ LIST_ENTITY_TYPE = [
     "Partnership",
     "Trust"
 ]
+
+REGEX_PATTERN_REGISTRATION_NUMBER = r'REG\d{5}'

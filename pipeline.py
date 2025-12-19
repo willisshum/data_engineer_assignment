@@ -2,8 +2,9 @@ from dotenv import load_dotenv
 import os
 import logging
 import pandas as pd
+import re
 
-from reference_value import LIST_ENTITY_TYPE
+from reference_value import LIST_ENTITY_TYPE, REGEX_PATTERN_REGISTRATION_NUMBER
 
 load_dotenv()
 DICT_LOG_LEVEL_REFERENCE = {
@@ -50,9 +51,12 @@ def cleanse_data(df_original):
     df_processing = process_entityName(df_processing)
     logging.info('- Process column entityType.')
     df_processing = process_entityType(df_processing)
+    logging.info('- Process column registrationNumber.')
+    df_processing = process_registrationNumber(df_processing)
     df_processing["reject"] = df_processing[[
         "EntityName_reject",
-        "EntityType_reject"
+        "EntityType_reject",
+        "RegistrationNumber_reject"
         ]].all()
     return df_processing
 
@@ -92,6 +96,26 @@ def process_entityType(df_processing):
     df_processing["EntityType"] = df_processing["EntityType"].apply(lambda x: x[0].upper() + x[1:].lower() if x is not pd.NA else x, by_row='compat').astype("string")
     # Validate EntityType as expected value or not, reject when it is fail
     df_processing["EntityType_reject"] = df_processing["EntityType"].apply(lambda x: True if x is pd.NA or x not in LIST_ENTITY_TYPE else False)
+    return df_processing
+
+def process_registrationNumber(df_processing):
+    """Process column RegistrationNumber.
+
+    Args:
+        df_processing (dataframe): The pandas dataframe of processing data.
+
+    Returns:
+        df_processing (dataframe): The pandas dataframe of processing data.
+    """
+    if "RegistrationNumber" not in df_processing.columns:
+        logging.error('-- Column "RegistrationNumber" is missed in CSV data.')
+        raise Exception("CSV data has missed some columns")
+    # Remove whitespace
+    df_processing["RegistrationNumber"] = df_processing["RegistrationNumber"].apply(lambda x: x.strip() if x is not pd.NA else x, by_row='compat').astype("string")
+    # Uppercase all letters
+    df_processing["RegistrationNumber"] = df_processing["RegistrationNumber"].apply(lambda x: x.upper() if x is not pd.NA else x, by_row='compat').astype("string")
+    # Validate RegistrationNumber as expected format or not, reject when it is fail
+    df_processing["RegistrationNumber_reject"] = df_processing["RegistrationNumber"].apply(lambda x: True if x is not pd.NA and re.fullmatch(REGEX_PATTERN_REGISTRATION_NUMBER, x) is None else False)
     return df_processing
 
 if __name__ == "__main__":

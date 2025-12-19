@@ -3,7 +3,7 @@ import pandas as pd
 import re
 from pandas.testing import assert_frame_equal
 
-from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType
+from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber
 
 class TestPipeLine(unittest.TestCase):
     def test_ingest_csv(self):
@@ -146,6 +146,46 @@ class TestPipeLine(unittest.TestCase):
         df_testing = pd.DataFrame(data_testing, dtype=pd.StringDtype())
         df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
         df_testing = process_entityType(df_testing)
+        assert_frame_equal(df_testing, df_expected)
+
+    def test_process_registrationNumber(self):
+        """Test that it can process RegistrationNumber.
+        """
+        data_testing = {
+            "RegistrationNumber": [
+                "REG10234",
+                "reg10234",
+                "REG000",
+                "abc10234",
+                "abc",
+                None
+            ]
+        }
+        data_expected = {
+            "RegistrationNumber": [
+                "REG10234",
+                "REG10234",
+                "REG000",
+                "ABC10234",
+                "ABC",
+                None
+            ],
+            "RegistrationNumber_reject": [
+                False,
+                False,
+                True,
+                True,
+                True,
+                False
+            ]
+        }
+        dtype_mapping = {
+            "RegistrationNumber": "string",
+            "RegistrationNumber_reject": "bool"
+        }
+        df_testing = pd.DataFrame(data_testing, dtype=pd.StringDtype())
+        df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
+        df_testing = process_registrationNumber(df_testing)
         assert_frame_equal(df_testing, df_expected)
 
 if __name__ == "__main__":
