@@ -44,7 +44,29 @@ def cleanse_data(df_original):
         df_processing (dataframe): The pandas dataframe of clean data.
     """
     df_processing = df_original.copy(deep=True)
-    df_processing["reject"] = False
+    logging.info('- Process column entityName.')
+    df_processing = process_entityName(df_processing)
+    df_processing["reject"] = df_processing[[
+        "EntityName_reject"
+        ]].all()
+    return df_processing
+
+def process_entityName(df_processing):
+    """Process column EntityName.
+
+    Args:
+        df_processing (dataframe): The pandas dataframe of processing data.
+
+    Returns:
+        df_processing (dataframe): The pandas dataframe of processing data.
+    """
+    if "EntityName" not in df_processing.columns:
+        logging.error('-- Column "EntityName" is missed in CSV data.')
+        raise Exception("CSV data has missed some columns")
+    # Remove whitespace
+    df_processing["EntityName"] = df_processing["EntityName"].apply(lambda x: x.strip() if x is not pd.NA else x, by_row='compat').astype("string")
+    # Validate EntityName contains value or not, reject when it is fail
+    df_processing["EntityName_reject"] = df_processing["EntityName"].apply(lambda x: True if x is pd.NA or x == "" or x == " " else False)
     return df_processing
 
 if __name__ == "__main__":

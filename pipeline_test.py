@@ -1,8 +1,9 @@
 import unittest
 import pandas as pd
 import re
+from pandas.testing import assert_frame_equal
 
-from pipeline import ingest_csv, cleanse_data
+from pipeline import ingest_csv, cleanse_data, process_entityName
 
 class TestPipeLine(unittest.TestCase):
     def test_ingest_csv(self):
@@ -63,6 +64,40 @@ class TestPipeLine(unittest.TestCase):
         self.assertGreater(len(column_difference), 0, "New columns should be inserted.")
         check_column_name_reject = [True if re.fullmatch(r".*reject$", x) is not None else False for x in column_difference]
         self.assertEqual(all(check_column_name_reject), True, 'All new columns should contain "reject" wordings.')
+
+    def test_process_entityName(self):
+        """Test that it can process EntityName.
+        """
+        data_testing = {
+            "EntityName": [
+                "ABC",
+                "",
+                " ",
+                None
+            ]
+        }
+        data_expected = {
+            "EntityName": [
+                "ABC",
+                "",
+                "",
+                None
+            ],
+            "EntityName_reject": [
+                False,
+                True,
+                True,
+                True
+            ]
+        }
+        dtype_mapping = {
+            "EntityName": "string",
+            "EntityName_reject": "bool"
+        }
+        df_testing = pd.DataFrame(data_testing, dtype=pd.StringDtype())
+        df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
+        df_testing = process_entityName(df_testing)
+        assert_frame_equal(df_testing, df_expected)
 
 if __name__ == "__main__":
     unittest.main()
