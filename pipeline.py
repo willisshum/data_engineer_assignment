@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 import os
 import logging
+import pandas as pd
 
 load_dotenv()
 DICT_LOG_LEVEL_REFERENCE = {
