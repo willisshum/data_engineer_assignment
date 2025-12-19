@@ -3,7 +3,7 @@ import pandas as pd
 import re
 from pandas.testing import assert_frame_equal
 
-from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber, process_incorporationDate
+from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber, process_incorporationDate, process_countryCode
 
 class TestPipeLine(unittest.TestCase):
     def test_ingest_csv(self):
@@ -15,7 +15,7 @@ class TestPipeLine(unittest.TestCase):
         self.assertEqual(df_testing.shape, (100, 13), "100 records with 13 columns should be read")
 
     def test_cleanse_data(self):
-        """Test that some columns with "reject" in names are inserted.
+        """Test that some columns with "reject" or "revised" in names are inserted.
         """
         data_testing = {
 			"EntityID": [
@@ -62,8 +62,8 @@ class TestPipeLine(unittest.TestCase):
         df_result = cleanse_data(df_testing)
         column_difference = set(df_result.columns) - set(df_testing.columns)
         self.assertGreater(len(column_difference), 0, "New columns should be inserted.")
-        check_column_name_reject = [True if re.fullmatch(r".*reject$", x) is not None else False for x in column_difference]
-        self.assertEqual(all(check_column_name_reject), True, 'All new columns should contain "reject" wordings.')
+        check_column_name_reject = [True if re.fullmatch(r".*(reject|revised)$", x) is not None else False for x in column_difference]
+        self.assertEqual(all(check_column_name_reject), True, 'All new columns should contain "reject" or "revised" wordings.')
 
     def test_process_entityName(self):
         """Test that it can process EntityName.
@@ -239,6 +239,70 @@ class TestPipeLine(unittest.TestCase):
         df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
         df_testing = process_incorporationDate(df_testing)
         assert_frame_equal(df_testing, df_expected)
+
+    def test_process_countryCode(self):
+        """Test that it can process CountryCode.
+        """
+        data_testing = {
+            "CountryCode": [
+                "CA",
+                "us",
+                "MY-15",
+                "GB-EAW",
+                "asdf",
+                "asdf",
+                "asdf",
+                None,
+                None,
+                None
+            ],
+            "Country": [
+                "Canada",
+                "US",
+                "Malaysia",
+                "United Kingdom",
+                "Singapore",
+                "asdf2",
+                None,
+                "Germany",
+                "asdf",
+                None
+            ]
+        }
+        data_expected = {
+            "CountryCode_revised": [
+                "CA",
+                "US",
+                "MY",
+                "GB",
+                "SG",
+                "asdf2",
+                None,
+                "DE",
+                "asdf",
+                None
+            ],
+            "CountryCode_reject": [
+                False,
+                False,
+                False,
+                False,
+                False,
+                True,
+                True,
+                False,
+                True,
+                True
+            ]
+        }
+        dtype_mapping = {
+            "CountryCode_revised": "string",
+            "CountryCode_reject": "bool"
+        }
+        df_testing = pd.DataFrame(data_testing, dtype=pd.StringDtype())
+        df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
+        df_testing = process_countryCode(df_testing)
+        assert_frame_equal(df_testing[["CountryCode_revised", "CountryCode_reject"]], df_expected)
 
 if __name__ == "__main__":
     unittest.main()

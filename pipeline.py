@@ -4,8 +4,9 @@ import logging
 import pandas as pd
 import re
 from datetime import date
+import pycountry
 
-from reference_value import LIST_ENTITY_TYPE, REGEX_PATTERN_REGISTRATION_NUMBER, REGEX_PATTERN_DATE_FORMAT, DATE_FORMAT_CODE_OUTPUT
+from reference_value import LIST_ENTITY_TYPE, REGEX_PATTERN_REGISTRATION_NUMBER, REGEX_PATTERN_DATE_FORMAT, DATE_FORMAT_CODE_OUTPUT, REGEX_PATTERN_COUNTRY_CODE_OUTPUT
 
 load_dotenv()
 DICT_LOG_LEVEL_REFERENCE = {
@@ -56,11 +57,14 @@ def cleanse_data(df_original):
     df_processing = process_registrationNumber(df_processing)
     logging.info('- Process column IncorporationDate.')
     df_processing = process_incorporationDate(df_processing)
+    logging.info('- Process column CountryCode.')
+    df_processing = process_countryCode(df_processing)
     df_processing["reject"] = df_processing[[
         "EntityName_reject",
         "EntityType_reject",
         "RegistrationNumber_reject",
-        "IncorporationDate_reject"
+        "IncorporationDate_reject",
+        "CountryCode_reject"
         ]].all()
     return df_processing
 
@@ -192,6 +196,48 @@ def revise_date_format(input_str):
         except ValueError:
             logging.debug(f'-- string {input_str} is not in the date format {item["debug_message"]}.')
     return input_str
+
+def process_countryCode(df_processing):
+    """Process column CountryCode.
+
+    Args:
+        df_processing (dataframe): The pandas dataframe of processing data.
+
+    Returns:
+        df_processing (dataframe): The pandas dataframe of processing data.
+    """
+    if "Country" not in df_processing.columns:
+        logging.error('-- Column "Country" is missed in CSV data.')
+    if "CountryCode" not in df_processing.columns:
+        logging.error('-- Column "CountryCode" is missed in CSV data.')
+        raise Exception("CSV data has missed some columns")
+    # Remove whitespace and uppercase the whole string
+    df_processing["CountryCode_revised"] = df_processing["CountryCode"].apply(lambda x: x.strip().upper() if x is not pd.NA else x, by_row='compat').astype("string")
+    # Extract the first two letters if correct format is found
+    df_processing["CountryCode_revised"] = df_processing["CountryCode_revised"].apply(lambda x: x[0:1] if x is not pd.NA and re.fullmatch(REGEX_PATTERN_COUNTRY_CODE_OUTPUT + r"(?:-.+)?", x) is not None else x, by_row='compat').astype("string")
+    # Check the CountryCode is valid or not, remove if it not valid
+    df_processing["CountryCode_revised"] = df_processing["CountryCode_revised"].apply(lambda x: pycountry.countries.get(alpha_2=x).alpha_2 if x is not pd.NA and pycountry.countries.get(alpha_2=x) is not None else pd.NA, by_row='compat').astype("string")
+    # Use Country to provide CountryCode if CountryCode is missing
+    df_processing["CountryCode_revised"] = df_processing.apply(lambda x: convert_country_name_to_country_code(x["Country"]) if x["CountryCode_revised"] is pd.NA and "Country" in x.keys() and x["Country"] is not pd.NA else x["CountryCode_revised"], by_row='compat', axis=1).astype("string")
+    # Validate CountryCode as expected format or not, reject when it is fail
+    df_processing["CountryCode_reject"] = df_processing["CountryCode_revised"].apply(lambda x: True if x is pd.NA or (x is not pd.NA and re.fullmatch(REGEX_PATTERN_COUNTRY_CODE_OUTPUT, x) is None) else False)
+    return df_processing
+
+def convert_country_name_to_country_code(input_str):
+    """Convert the input_str, which is expected as country name, to country code.
+
+    Args:
+        input_str (string): Input string expected as country name
+
+    Returns:
+        (string): Output string as country code
+    """
+    try:
+        results = pycountry.countries.search_fuzzy(input_str)
+        return results[0].alpha_2
+    except LookupError:
+        logging.debug(f'-- string {input_str} is not a valid country name.')
+        return input_str
 
 if __name__ == "__main__":
     # Ingest CSV data
