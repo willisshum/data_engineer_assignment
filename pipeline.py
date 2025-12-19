@@ -34,12 +34,26 @@ def ingest_csv(file_path, separator):
     df = pd.read_csv(file_path, sep=separator, dtype="string")
     return df
 
+def cleanse_data(df_original):
+    """Cleanse data step by step.
+
+    Args:
+        df_original (dataframe): The pandas dataframe of original data.
+
+    Returns:
+        df_processing (dataframe): The pandas dataframe of clean data.
+    """
+    df_processing = df_original.copy(deep=True)
+    df_processing["reject"] = False
+    return df_processing
+
 if __name__ == "__main__":
     # Ingest CSV data
     logging.info('Ingest CSV data.')
     df_source = ingest_csv(CSV_PATH, CSV_DATA_SEPARATOR)
     # Cleanse data
     logging.info('Cleanse data.')
+    df_clean = cleanse_data(df_source)
     # Deduplicate records
     logging.info('Deduplicate records.')
     # Validate data against business rules
