@@ -3,7 +3,7 @@ import pandas as pd
 import re
 from pandas.testing import assert_frame_equal
 
-from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber, process_incorporationDate, process_countryCode, process_stateCode, process_status, process_industry, process_contactEmail
+from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber, process_incorporationDate, process_countryCode, process_stateCode, process_status, process_industry, process_contactEmail, process_lastUpdate
 
 class TestPipeLine(unittest.TestCase):
     def test_ingest_csv(self):
@@ -498,6 +498,58 @@ class TestPipeLine(unittest.TestCase):
         df_testing = pd.DataFrame(data_testing, dtype=pd.StringDtype())
         df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
         df_testing = process_contactEmail(df_testing)
+        assert_frame_equal(df_testing, df_expected)
+
+    def test_process_lastUpdate(self):
+        """Test that it can process LastUpdate.
+        """
+        data_testing = {
+            "LastUpdate": [
+                "9/17/21",
+                "18/6/18",
+                "9/17/2021",
+                "18/6/2018",
+                "11-26-17",
+                "11-26-2017",
+                "2017-11-26",
+                "2-Nov-20",
+                "asdf",
+                None
+            ]
+        }
+        data_expected = {
+            "LastUpdate": [
+                "2021-09-17",
+                "2018-06-18",
+                "2021-09-17",
+                "2018-06-18",
+                "2017-11-26",
+                "2017-11-26",
+                "2017-11-26",
+                "2020-11-02",
+                "asdf",
+                None
+            ],
+            "LastUpdate_reject": [
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                True,
+                False
+            ]
+        }
+        dtype_mapping = {
+            "LastUpdate": "string",
+            "LastUpdate_reject": "bool"
+        }
+        df_testing = pd.DataFrame(data_testing, dtype=pd.StringDtype())
+        df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
+        df_testing = process_lastUpdate(df_testing)
         assert_frame_equal(df_testing, df_expected)
 
 if __name__ == "__main__":

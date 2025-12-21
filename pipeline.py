@@ -68,6 +68,8 @@ def cleanse_data(df_original):
     df_processing = process_industry(df_processing)
     logging.info('- Process column ContactEmail.')
     df_processing = process_contactEmail(df_processing)
+    logging.info('- Process column LastUpdate.')
+    df_processing = process_lastUpdate(df_processing)
     df_processing["reject"] = df_processing[[
         "EntityName_reject",
         "EntityType_reject",
@@ -77,7 +79,8 @@ def cleanse_data(df_original):
         "StateCode_reject",
         "Status_reject",
         "Industry_reject",
-        "ContactEmail_reject"
+        "ContactEmail_reject",
+        "LastUpdate_reject"
         ]].all()
     return df_processing
 
@@ -372,6 +375,27 @@ def process_contactEmail(df_processing):
     df_processing["ContactEmail"] = df_processing["ContactEmail"].apply(lambda x: x.strip() if x is not pd.NA else x, by_row='compat').astype("string")
     # Validate ContactEmail as expected format or not, reject when it is fail
     df_processing["ContactEmail_reject"] = df_processing["ContactEmail"].apply(lambda x: True if x is not pd.NA and re.fullmatch(r".+@.+", x) is None else False)
+    return df_processing
+
+
+def process_lastUpdate(df_processing):
+    """Process column LastUpdate.
+
+    Args:
+        df_processing (dataframe): The pandas dataframe of processing data.
+
+    Returns:
+        df_processing (dataframe): The pandas dataframe of processing data.
+    """
+    if "LastUpdate" not in df_processing.columns:
+        logging.error('-- Column "LastUpdate" is missed in CSV data.')
+        raise Exception("CSV data has missed some columns")
+    # Remove whitespace
+    df_processing["LastUpdate"] = df_processing["LastUpdate"].apply(lambda x: x.strip() if x is not pd.NA else x, by_row='compat').astype("string")
+    # Revise date format if necessary
+    df_processing["LastUpdate"] = df_processing["LastUpdate"].apply(lambda x: revise_date_format(x) if x is not pd.NA else x, by_row='compat').astype("string")
+    # Validate LastUpdate as expected format or not, reject when it is fail
+    df_processing["LastUpdate_reject"] = df_processing["LastUpdate"].apply(lambda x: True if x is not pd.NA and re.fullmatch(REGEX_PATTERN_DATE_FORMAT, x) is None else False)
     return df_processing
 
 if __name__ == "__main__":
