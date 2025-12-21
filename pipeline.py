@@ -66,6 +66,8 @@ def cleanse_data(df_original):
     df_processing = process_status(df_processing)
     logging.info('- Process column Industry.')
     df_processing = process_industry(df_processing)
+    logging.info('- Process column ContactEmail.')
+    df_processing = process_contactEmail(df_processing)
     df_processing["reject"] = df_processing[[
         "EntityName_reject",
         "EntityType_reject",
@@ -74,7 +76,8 @@ def cleanse_data(df_original):
         "CountryCode_reject",
         "StateCode_reject",
         "Status_reject",
-        "Industry_reject"
+        "Industry_reject",
+        "ContactEmail_reject"
         ]].all()
     return df_processing
 
@@ -351,6 +354,24 @@ def process_industry(df_processing):
     df_processing["Industry"] = df_processing["Industry"].apply(lambda x: " ".join([y[0].upper() + y[1:].lower() for y in x.split(" ")]) if x is not pd.NA else x, by_row='compat').astype("string")
     # None of the records will be rejected due to Industry
     df_processing["Industry_reject"] = False
+    return df_processing
+
+def process_contactEmail(df_processing):
+    """Process column ContactEmail.
+
+    Args:
+        df_processing (dataframe): The pandas dataframe of processing data.
+
+    Returns:
+        df_processing (dataframe): The pandas dataframe of processing data.
+    """
+    if "ContactEmail" not in df_processing.columns:
+        logging.error('-- Column "ContactEmail" is missed in CSV data.')
+        raise Exception("CSV data has missed some columns")
+    # Remove whitespace
+    df_processing["ContactEmail"] = df_processing["ContactEmail"].apply(lambda x: x.strip() if x is not pd.NA else x, by_row='compat').astype("string")
+    # Validate ContactEmail as expected format or not, reject when it is fail
+    df_processing["ContactEmail_reject"] = df_processing["ContactEmail"].apply(lambda x: True if x is not pd.NA and re.fullmatch(r".+@.+", x) is None else False)
     return df_processing
 
 if __name__ == "__main__":

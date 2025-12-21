@@ -3,7 +3,7 @@ import pandas as pd
 import re
 from pandas.testing import assert_frame_equal
 
-from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber, process_incorporationDate, process_countryCode, process_stateCode, process_status, process_industry
+from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber, process_incorporationDate, process_countryCode, process_stateCode, process_status, process_industry, process_contactEmail
 
 class TestPipeLine(unittest.TestCase):
     def test_ingest_csv(self):
@@ -467,6 +467,37 @@ class TestPipeLine(unittest.TestCase):
         df_testing = pd.DataFrame(data_testing, dtype=pd.StringDtype())
         df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
         df_testing = process_industry(df_testing)
+        assert_frame_equal(df_testing, df_expected)
+
+    def test_process_contactEmail(self):
+        """Test that it can process ContactEmail.
+        """
+        data_testing = {
+            "ContactEmail": [
+                "info@freshfarm.in",
+                "goldenGate.me",
+                None
+            ]
+        }
+        data_expected = {
+            "ContactEmail": [
+                "info@freshfarm.in",
+                "goldenGate.me",
+                None
+            ],
+            "ContactEmail_reject": [
+                False,
+                True,
+                False
+            ]
+        }
+        dtype_mapping = {
+            "ContactEmail": "string",
+            "ContactEmail_reject": "bool"
+        }
+        df_testing = pd.DataFrame(data_testing, dtype=pd.StringDtype())
+        df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
+        df_testing = process_contactEmail(df_testing)
         assert_frame_equal(df_testing, df_expected)
 
 if __name__ == "__main__":
