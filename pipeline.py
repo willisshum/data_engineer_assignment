@@ -7,7 +7,7 @@ from datetime import date
 import pycountry
 from translate import Translator
 
-from reference_value import LIST_ENTITY_TYPE, REGEX_PATTERN_REGISTRATION_NUMBER, REGEX_PATTERN_DATE_FORMAT, DATE_FORMAT_CODE_OUTPUT, REGEX_PATTERN_COUNTRY_CODE_OUTPUT, LIST_STATUS, DICT_STATUS_MAPPING
+from reference_value import LIST_ENTITY_TYPE, REGEX_PATTERN_REGISTRATION_NUMBER, REGEX_PATTERN_DATE_FORMAT, DATE_FORMAT_CODE_OUTPUT, REGEX_PATTERN_COUNTRY_CODE_OUTPUT, LIST_STATUS, DICT_STATUS_MAPPING, LIST_SCHEMA_MAPPING
 
 load_dotenv()
 DICT_LOG_LEVEL_REFERENCE = {
@@ -398,6 +398,29 @@ def process_lastUpdate(df_processing):
     df_processing["LastUpdate_reject"] = df_processing["LastUpdate"].apply(lambda x: True if x is not pd.NA and re.fullmatch(REGEX_PATTERN_DATE_FORMAT, x) is None else False)
     return df_processing
 
+def deduplicate_records(df_in):
+    """Deduplicate records for the input dataframe. Output as two dataframes, deduplicated entities and rejected entities due to duplication with other different information
+
+    Args:
+        df_in (dataframe): The pandas dataframe needed to be deduplicated.
+
+    Returns:
+        df_deduplicate (dataframe): The pandas dataframe which is deduplicated.
+        df_duplicate_reject (dataframe): The pandas dataframe which is duplicate in EntityName and EntityType but other information is different.
+    """
+    df_in["duplicate_candidate"] = df_in[["EntityName", "EntityType"]].duplicated(keep=False)
+    df_duplicate_reject = pd.DataFrame(columns=df_in.columns).astype(df_in.dtypes)
+    logging.info('- Decouple unique records and duplicate candidates.')
+    df_deduplicate = df_in[df_in["duplicate_candidate"] == False]
+    df_duplicate_candidate = df_in[df_in["duplicate_candidate"] == True]
+    logging.info('- Checking all useful columns to decide whether it is duplicate reject case or not for each duplicate candidate group.')
+    list_of_df_duplicate_candidate_group = [group for name, group in df_duplicate_candidate.groupby(["EntityName", "EntityType"])]
+    for x in list_of_df_duplicate_candidate_group:
+        if x[[item[0] for item in LIST_SCHEMA_MAPPING]].duplicated(keep=False).all(axis=0):
+            df_deduplicate = pd.concat([df_deduplicate, x.drop_duplicates(subset=[item[0] for item in LIST_SCHEMA_MAPPING])], ignore_index=True)
+        else:
+            df_duplicate_reject = pd.concat([df_duplicate_reject, x], ignore_index=True)
+    return df_deduplicate, df_duplicate_reject
 if __name__ == "__main__":
     # Ingest CSV data
     logging.info('Ingest CSV data.')
@@ -405,8 +428,11 @@ if __name__ == "__main__":
     # Cleanse data
     logging.info('Cleanse data.')
     df_clean = cleanse_data(df_source)
+    df_clean_without_reject = df_clean[df_clean["reject"]  == False]
+    df_clean_with_reject = df_clean[df_clean["reject"]  == True]
     # Deduplicate records
     logging.info('Deduplicate records.')
+    df_deduplicate, df_duplicate_reject = deduplicate_records(df_clean_without_reject)
     # Validate data against business rules
     logging.info('Validate against business rules.')
     # Transform fields to fit MySQL schema

@@ -3,7 +3,7 @@ import pandas as pd
 import re
 from pandas.testing import assert_frame_equal
 
-from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber, process_incorporationDate, process_countryCode, process_stateCode, process_status, process_industry, process_contactEmail, process_lastUpdate
+from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber, process_incorporationDate, process_countryCode, process_stateCode, process_status, process_industry, process_contactEmail, process_lastUpdate, deduplicate_records
 
 class TestPipeLine(unittest.TestCase):
     def test_ingest_csv(self):
@@ -551,6 +551,255 @@ class TestPipeLine(unittest.TestCase):
         df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
         df_testing = process_lastUpdate(df_testing)
         assert_frame_equal(df_testing, df_expected)
+
+    def test_deduplicate_records(self):
+        """Test that it can deduplicate records.
+        """
+        data_testing = {
+            "EntityID": [
+                "1001",
+                "1004",
+                "1008",
+                "1029",
+                "1030",
+                "1096",
+                "2000"
+            ],
+            "EntityName": [
+                "Acme Manufacturing",
+                "Acme Manufacturing",
+                "Vivo Trading",
+                "Acme Manufacturing",
+                "Vivo Trading",
+                "Bluebell Trust",
+                "Bluebell Trust"
+            ],
+            "EntityType": [
+                "Company",
+                "Company",
+                "Company",
+                "Company",
+                "Company",
+                "Trust",
+                "Trust"
+            ],
+            "RegistrationNumber": [
+                "REG10234",
+                "REG10234",
+                None,
+                "REG10234",
+                None,
+                "REG33817",
+                "REG33817"
+            ],
+            "IncorporationDate": [
+                "5/12/10",
+                "12/5/10",
+                "4/17/20",
+                "5/12/10",
+                "4/17/20",
+                "10/8/10",
+                "10/8/10"
+            ],
+            "CountryCode_revised": [
+                "US",
+                "US",
+                "US",
+                "US",
+                "US",
+                "AU",
+                "AU"
+            ],
+            "StateCode_revised": [
+                "CA",
+                "CA",
+                "TX",
+                None,
+                None,
+                "SYD",
+                "SYD"
+            ],
+            "Status": [
+                "Active",
+                "Active",
+                "Active",
+                "Active",
+                "Active",
+                "Active",
+                "Active"
+            ],
+            "Industry": [
+                "Manufacturing",
+                "Manufacturing",
+                "Trading",
+                "Manufacturing",
+                "Trading",
+                "Trust",
+                "Trust"
+            ],
+            "ContactEmail": [
+                "info@acmemfg.com",
+                "info@acmemfg.com",
+                None,
+                "info@acmemfg.com",
+                None,
+                "info@bluebelltrust.au",
+                "info@bluebelltrust.au"
+            ],
+            "LastUpdate": [
+                "6/15/22",
+                None,
+                "3/9/22",
+                "6/15/22",
+                "3/9/22",
+                "5/30/22",
+                "5/30/22"
+            ]
+        }
+        data_expected_deduplicate = {
+            "EntityID": [
+                "1096"
+            ],
+            "EntityName": [
+                "Bluebell Trust"
+            ],
+            "EntityType": [
+                "Trust"
+            ],
+            "RegistrationNumber": [
+                "REG33817"
+            ],
+            "IncorporationDate": [
+                "10/8/10"
+            ],
+            "CountryCode_revised": [
+                "AU"
+            ],
+            "StateCode_revised": [
+                "SYD"
+            ],
+            "Status": [
+                "Active"
+            ],
+            "Industry": [
+                "Trust"
+            ],
+            "ContactEmail": [
+                "info@bluebelltrust.au"
+            ],
+            "LastUpdate": [
+                "5/30/22"
+            ],
+            "duplicate_candidate": [
+                True
+            ]
+        }
+        data_expected_duplicate_reject = {
+            "EntityID": [
+                "1001",
+                "1004",
+                "1008",
+                "1029",
+                "1030"
+            ],
+            "EntityName": [
+                "Acme Manufacturing",
+                "Acme Manufacturing",
+                "Vivo Trading",
+                "Acme Manufacturing",
+                "Vivo Trading"
+            ],
+            "EntityType": [
+                "Company",
+                "Company",
+                "Company",
+                "Company",
+                "Company"
+            ],
+            "RegistrationNumber": [
+                "REG10234",
+                "REG10234",
+                None,
+                "REG10234",
+                None
+            ],
+            "IncorporationDate": [
+                "5/12/10",
+                "12/5/10",
+                "4/17/20",
+                "5/12/10",
+                "4/17/20"
+            ],
+            "CountryCode_revised": [
+                "US",
+                "US",
+                "US",
+                "US",
+                "US"
+            ],
+            "StateCode_revised": [
+                "CA",
+                "CA",
+                "TX",
+                None,
+                None
+            ],
+            "Status": [
+                "Active",
+                "Active",
+                "Active",
+                "Active",
+                "Active"
+            ],
+            "Industry": [
+                "Manufacturing",
+                "Manufacturing",
+                "Trading",
+                "Manufacturing",
+                "Trading"
+            ],
+            "ContactEmail": [
+                "info@acmemfg.com",
+                "info@acmemfg.com",
+                None,
+                "info@acmemfg.com",
+                None
+            ],
+            "LastUpdate": [
+                "6/15/22",
+                None,
+                "3/9/22",
+                "6/15/22",
+                "3/9/22"
+            ],
+            "duplicate_candidate": [
+                True,
+                True,
+                True,
+                True,
+                True
+            ]
+        }
+        dtype_mapping = {
+            "EntityID": "string",
+            "EntityName": "string",
+            "EntityType": "string",
+            "RegistrationNumber": "string",
+            "IncorporationDate": "string",
+            "CountryCode_revised": "string",
+            "StateCode_revised": "string",
+            "Status": "string",
+            "Industry": "string",
+            "ContactEmail": "string",
+            "LastUpdate": "string",
+            "duplicate_candidate": "bool"
+        }
+        df_testing = pd.DataFrame(data_testing, dtype=pd.StringDtype())
+        df_expected_deduplicate = pd.DataFrame(data_expected_deduplicate).astype(dtype_mapping)
+        df_expected_duplicate_reject = pd.DataFrame(data_expected_duplicate_reject).astype(dtype_mapping)
+        df_testing_deduplicate, df_testing_duplicate_reject = deduplicate_records(df_testing)
+        assert_frame_equal(df_testing_deduplicate.sort_values(by=["EntityID"], ignore_index=True), df_expected_deduplicate.sort_values(by=["EntityID"], ignore_index=True))
+        assert_frame_equal(df_testing_duplicate_reject.sort_values(by=["EntityID"], ignore_index=True), df_expected_duplicate_reject.sort_values(by=["EntityID"], ignore_index=True))
 
 if __name__ == "__main__":
     unittest.main()
