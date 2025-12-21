@@ -12,3 +12,14 @@ REGEX_PATTERN_DATE_FORMAT = r'\d{4}-\d{2}-\d{2}'
 DATE_FORMAT_CODE_OUTPUT = "%Y-%m-%d"
 
 REGEX_PATTERN_COUNTRY_CODE_OUTPUT = r'[A-Z]{2}'
+
+LIST_STATUS = [
+    "Active",
+    "Inactive",
+    "Pending"
+]
+
+DICT_STATUS_MAPPING = {
+    "Y": "Active",
+    "N": "Inactive"
+}

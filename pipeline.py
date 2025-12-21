@@ -7,7 +7,7 @@ from datetime import date
 import pycountry
 from translate import Translator
 
-from reference_value import LIST_ENTITY_TYPE, REGEX_PATTERN_REGISTRATION_NUMBER, REGEX_PATTERN_DATE_FORMAT, DATE_FORMAT_CODE_OUTPUT, REGEX_PATTERN_COUNTRY_CODE_OUTPUT
+from reference_value import LIST_ENTITY_TYPE, REGEX_PATTERN_REGISTRATION_NUMBER, REGEX_PATTERN_DATE_FORMAT, DATE_FORMAT_CODE_OUTPUT, REGEX_PATTERN_COUNTRY_CODE_OUTPUT, LIST_STATUS, DICT_STATUS_MAPPING
 
 load_dotenv()
 DICT_LOG_LEVEL_REFERENCE = {
@@ -62,13 +62,16 @@ def cleanse_data(df_original):
     df_processing = process_countryCode(df_processing)
     logging.info('- Process column StateCode.')
     df_processing = process_stateCode(df_processing)
+    logging.info('- Process column Status.')
+    df_processing = process_status(df_processing)
     df_processing["reject"] = df_processing[[
         "EntityName_reject",
         "EntityType_reject",
         "RegistrationNumber_reject",
         "IncorporationDate_reject",
         "CountryCode_reject",
-        "StateCode_reject"
+        "StateCode_reject",
+        "Status_reject"
         ]].all()
     return df_processing
 
@@ -302,6 +305,28 @@ def convert_state_name_to_state_code(input_str, country_code):
         logging.debug(f'-- string {translation} is not a valid state name.')
 
     return input_str
+
+def process_status(df_processing):
+    """Process column Status.
+
+    Args:
+        df_processing (dataframe): The pandas dataframe of processing data.
+
+    Returns:
+        df_processing (dataframe): The pandas dataframe of processing data.
+    """
+    if "Status" not in df_processing.columns:
+        logging.error('-- Column "Status" is missed in CSV data.')
+        raise Exception("CSV data has missed some columns")
+    # Remove whitespace
+    df_processing["Status"] = df_processing["Status"].apply(lambda x: x.strip() if x is not pd.NA else x, by_row='compat').astype("string")
+    # Convert "Y" to "Active", "N" to "Inactive"
+    df_processing["Status"] = df_processing["Status"].apply(lambda x: DICT_STATUS_MAPPING.get(x, x) if x is not pd.NA else x, by_row='compat').astype("string")
+    # Standardize the wordings
+    df_processing["Status"] = df_processing["Status"].apply(lambda x: re.fullmatch(rf"({"|".join(LIST_STATUS)}).*", x).group(1) if x is not pd.NA and re.fullmatch(rf"({"|".join(LIST_STATUS)}).*", x) is not None else x, by_row='compat').astype("string")
+    # Validate Status as expected value or not, reject when it is fail
+    df_processing["Status_reject"] = df_processing["Status"].apply(lambda x: True if x is pd.NA or (x is not pd.NA and x not in LIST_STATUS) else False)
+    return df_processing
 
 if __name__ == "__main__":
     # Ingest CSV data
