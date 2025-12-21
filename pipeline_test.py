@@ -3,7 +3,7 @@ import pandas as pd
 import re
 from pandas.testing import assert_frame_equal
 
-from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber, process_incorporationDate, process_countryCode
+from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber, process_incorporationDate, process_countryCode, process_stateCode
 
 class TestPipeLine(unittest.TestCase):
     def test_ingest_csv(self):
@@ -303,6 +303,88 @@ class TestPipeLine(unittest.TestCase):
         df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
         df_testing = process_countryCode(df_testing)
         assert_frame_equal(df_testing[["CountryCode_revised", "CountryCode_reject"]], df_expected)
+
+    def test_process_stateCode(self):
+        """Test that it can process StateCode.
+        """
+        data_testing = {
+            "StateCode": [
+                "VIC",
+                None,
+                None,
+                "AU",
+                "SCOT",
+                "SCT",
+                None,
+                None,
+                "asdf"
+        ],
+            "State": [
+                "Victoria",
+                None,
+                "Victoria",
+                None,
+                "Scotland",
+                "Scotland",
+                None,
+                "Labuan",
+                "Bavaria"
+            ],
+            "CountryCode": [
+                "AU",
+                "AU",
+                "AU",
+                "AU",
+                "GB",
+                "GB",
+                "GB-EAW",
+                "MY-15",
+                "DE"
+            ],
+            "CountryCode_revised": [
+                "AU",
+                "AU",
+                "AU",
+                "AU",
+                "GB",
+                "GB",
+                "GB",
+                "MY",
+                "DE"
+            ]
+        }
+        data_expected = {
+            "StateCode_revised": [
+                "VIC",
+                None,
+                "VIC",
+                None,
+                "SCT",
+                "SCT",
+                None,
+                "15",
+                "BY"
+            ],
+            "StateCode_reject": [
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False
+            ]
+        }
+        dtype_mapping = {
+            "StateCode_revised": "string",
+            "StateCode_reject": "bool"
+        }
+        df_testing = pd.DataFrame(data_testing, dtype=pd.StringDtype())
+        df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
+        df_testing = process_stateCode(df_testing)
+        assert_frame_equal(df_testing[["StateCode_revised", "StateCode_reject"]], df_expected)
 
 if __name__ == "__main__":
     unittest.main()

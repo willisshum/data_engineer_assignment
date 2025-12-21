@@ -5,6 +5,7 @@ import pandas as pd
 import re
 from datetime import date
 import pycountry
+from translate import Translator
 
 from reference_value import LIST_ENTITY_TYPE, REGEX_PATTERN_REGISTRATION_NUMBER, REGEX_PATTERN_DATE_FORMAT, DATE_FORMAT_CODE_OUTPUT, REGEX_PATTERN_COUNTRY_CODE_OUTPUT
 
@@ -59,12 +60,15 @@ def cleanse_data(df_original):
     df_processing = process_incorporationDate(df_processing)
     logging.info('- Process column CountryCode.')
     df_processing = process_countryCode(df_processing)
+    logging.info('- Process column StateCode.')
+    df_processing = process_stateCode(df_processing)
     df_processing["reject"] = df_processing[[
         "EntityName_reject",
         "EntityType_reject",
         "RegistrationNumber_reject",
         "IncorporationDate_reject",
-        "CountryCode_reject"
+        "CountryCode_reject",
+        "StateCode_reject"
         ]].all()
     return df_processing
 
@@ -238,6 +242,66 @@ def convert_country_name_to_country_code(input_str):
     except LookupError:
         logging.debug(f'-- string {input_str} is not a valid country name.')
         return input_str
+
+def process_stateCode(df_processing):
+    """Process column StateCode.
+
+    Args:
+        df_processing (dataframe): The pandas dataframe of processing data.
+
+    Returns:
+        df_processing (dataframe): The pandas dataframe of processing data.
+    """
+    if "CountryCode" not in df_processing.columns:
+        logging.error('-- Column "CountryCode" is missed in CSV data.')
+    if "State" not in df_processing.columns:
+        logging.error('-- Column "State" is missed in CSV data.')
+    if "StateCode" not in df_processing.columns:
+        logging.error('-- Column "StateCode" is missed in CSV data.')
+        raise Exception("CSV data has missed some columns")
+    # Remove whitespace and uppercase the whole string
+    df_processing["StateCode_revised"] = df_processing["StateCode"].apply(lambda x: x.strip().upper() if x is not pd.NA else x, by_row='compat').astype("string")
+    # Remove if StateCode is same as CountryCode
+    df_processing["StateCode_revised"] = df_processing.apply(lambda x: pd.NA if x["StateCode_revised"] is not pd.NA and "CountryCode_revised" in x.keys() and x["CountryCode_revised"] is not pd.NA and x["StateCode_revised"] == x["CountryCode_revised"] else x["StateCode_revised"], by_row='compat', axis=1).astype("string")
+    # Extract the subdivison code from CountryCode if CountryCode is in specific format
+    df_processing["StateCode_revised"] = df_processing.apply(lambda x: re.fullmatch(REGEX_PATTERN_COUNTRY_CODE_OUTPUT + r"-(.+)", x["CountryCode"]).group(0) if x["StateCode_revised"] is pd.NA and "CountryCode" in x.keys() and x["CountryCode"] is not pd.NA and re.fullmatch(REGEX_PATTERN_COUNTRY_CODE_OUTPUT + r"-(.+)", x["CountryCode"]) is not None else x["StateCode_revised"], by_row='compat', axis=1).astype("string")
+    # Check the StateCode is valid or not, remove if it not valid
+    df_processing["StateCode_revised"] = df_processing.apply(lambda x: pycountry.subdivisions.get(code=x["CountryCode_revised"] + "-" + x["StateCode_revised"]).code.split("-")[1] if x["StateCode_revised"] is not pd.NA and "CountryCode_revised" in x.keys() and x["CountryCode_revised"] is not pd.NA and x["StateCode_revised"] != x["CountryCode_revised"] and pycountry.subdivisions.get(code=x["CountryCode_revised"] + "-" + x["StateCode_revised"]) is not None else pd.NA, by_row='compat', axis=1).astype("string")
+    # Use State to provide StateCode if StateCode is missing
+    df_processing["StateCode_revised"] = df_processing.apply(lambda x: convert_state_name_to_state_code(x["State"], x["CountryCode_revised"] if "CountryCode_revised" in x.keys() else pd.NA) if x["StateCode_revised"] is pd.NA and "State" in x.keys() and x["State"] is not pd.NA else x["StateCode_revised"], by_row='compat', axis=1).astype("string")
+    # Invalid value is removed and missing value is allowed, thus none of the records will be rejected due to StateCode
+    df_processing["StateCode_reject"] = False
+    return df_processing
+
+def convert_state_name_to_state_code(input_str, country_code):
+    """Convert the input_str, which is expected as state name, to state code.
+
+    Args:
+        input_str (string): Input string expected as state name
+        country_code (string): Country code to be used as the language code for translation
+
+    Returns:
+        (string): Output string as state code
+    """
+    try:
+        results = pycountry.subdivisions.search_fuzzy(input_str)
+        return results[0].code.split("-")[1]
+    except LookupError:
+        logging.debug(f'-- string {input_str} is not a valid state name.')
+
+    # try to search the state name in the language used by the country
+    try:
+        lang_list = list(pycountry.languages)
+        lang_list = [x.alpha_2 for x in lang_list if hasattr(x, "alpha_2")]
+        if country_code.lower() in lang_list:
+            translator = Translator(to_lang=country_code)
+            translation = translator.translate(input_str)
+            results = pycountry.subdivisions.search_fuzzy(translation)
+            return results[0].code.split("-")[1]
+    except LookupError:
+        logging.debug(f'-- string {translation} is not a valid state name.')
+
+    return input_str
 
 if __name__ == "__main__":
     # Ingest CSV data
