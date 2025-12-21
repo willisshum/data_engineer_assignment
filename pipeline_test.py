@@ -3,7 +3,7 @@ import pandas as pd
 import re
 from pandas.testing import assert_frame_equal
 
-from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber, process_incorporationDate, process_countryCode, process_stateCode, process_status
+from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber, process_incorporationDate, process_countryCode, process_stateCode, process_status, process_industry
 
 class TestPipeLine(unittest.TestCase):
     def test_ingest_csv(self):
@@ -430,6 +430,43 @@ class TestPipeLine(unittest.TestCase):
         df_testing = pd.DataFrame(data_testing, dtype=pd.StringDtype())
         df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
         df_testing = process_status(df_testing)
+        assert_frame_equal(df_testing, df_expected)
+
+    def test_process_industry(self):
+        """Test that it can process Industry.
+        """
+        data_testing = {
+            "Industry": [
+                "Real Estate",
+                "rEAL eSTATE",
+                "Trust",
+                "NULL",
+                None
+            ]
+        }
+        data_expected = {
+            "Industry": [
+                "Real Estate",
+                "Real Estate",
+                "Trust",
+                None,
+                None
+            ],
+            "Industry_reject": [
+                False,
+                False,
+                False,
+                False,
+                False
+            ]
+        }
+        dtype_mapping = {
+            "Industry": "string",
+            "Industry_reject": "bool"
+        }
+        df_testing = pd.DataFrame(data_testing, dtype=pd.StringDtype())
+        df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
+        df_testing = process_industry(df_testing)
         assert_frame_equal(df_testing, df_expected)
 
 if __name__ == "__main__":
