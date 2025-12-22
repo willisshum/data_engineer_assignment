@@ -4,7 +4,7 @@ import re
 from pandas.testing import assert_frame_equal
 from datetime import date
 
-from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber, process_incorporationDate, process_countryCode, process_stateCode, process_status, process_industry, process_contactEmail, process_lastUpdate, deduplicate_records, validate_business_rules, transform_fields
+from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber, process_incorporationDate, process_countryCode, process_stateCode, process_status, process_industry, process_contactEmail, process_lastUpdate, deduplicate_records, validate_business_rules, transform_fields, load_to_MySQL, MYSQL_CONNECTION_CREDENTIAL
 
 class TestPipeLine(unittest.TestCase):
     def test_ingest_csv(self):
@@ -869,6 +869,9 @@ class TestPipeLine(unittest.TestCase):
             ]
         }
         data_expected = {
+            "entity_id": [
+                1096
+            ],
             "entity_name": [
                 "Bluebell Trust"
             ],
@@ -901,6 +904,7 @@ class TestPipeLine(unittest.TestCase):
             ]
         }
         dtype_mapping = {
+            "entity_id": "int",
             "entity_name": "string",
             "entity_type": "string",
             "registration_number": "string",
@@ -916,6 +920,61 @@ class TestPipeLine(unittest.TestCase):
         df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
         df_testing = transform_fields(df_testing)
         assert_frame_equal(df_testing, df_expected)
+
+    def test_load_to_MySQL(self):
+        """Test that it can load data to MySQL database.
+        """
+        data_testing = {
+            "entity_id": [
+                1096
+            ],
+            "entity_name": [
+                "Bluebell Trust"
+            ],
+            "entity_type": [
+                "Trust"
+            ],
+            "registration_number": [
+                "REG33817"
+            ],
+            "incorporation_date": [
+                date.strptime("2010-10-08", "%Y-%m-%d")
+            ],
+            "country_code": [
+                "AU"
+            ],
+            "state_code": [
+                "SYD"
+            ],
+            "status": [
+                "Active"
+            ],
+            "industry": [
+                "Trust"
+            ],
+            "contact_email": [
+                "info@bluebelltrust.au"
+            ],
+            "last_update": [
+                date.strptime("2022-05-30", "%Y-%m-%d")
+            ]
+        }
+        dtype_mapping = {
+            "entity_id": "int",
+            "entity_name": "string",
+            "entity_type": "string",
+            "registration_number": "string",
+            "incorporation_date": "datetime64[ns]",
+            "country_code": "string",
+            "state_code": "string",
+            "status": "string",
+            "industry": "string",
+            "contact_email": "string",
+            "last_update": "datetime64[ns]"
+        }
+        df_testing = pd.DataFrame(data_testing).astype(dtype_mapping)
+        result = load_to_MySQL(MYSQL_CONNECTION_CREDENTIAL, df_testing)
+        self.assertIsNotNone(result, msg=None)
 
 if __name__ == "__main__":
     unittest.main()

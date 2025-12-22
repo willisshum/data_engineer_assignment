@@ -6,8 +6,10 @@ import re
 from datetime import date
 import pycountry
 from translate import Translator
+import mysql.connector
+from mysql.connector import errorcode
 
-from reference_value import LIST_ENTITY_TYPE, REGEX_PATTERN_REGISTRATION_NUMBER, REGEX_PATTERN_DATE_FORMAT, DATE_FORMAT_CODE_OUTPUT, REGEX_PATTERN_COUNTRY_CODE_OUTPUT, LIST_STATUS, DICT_STATUS_MAPPING, LIST_SCHEMA_MAPPING
+from reference_value import LIST_ENTITY_TYPE, REGEX_PATTERN_REGISTRATION_NUMBER, REGEX_PATTERN_DATE_FORMAT, DATE_FORMAT_CODE_OUTPUT, REGEX_PATTERN_COUNTRY_CODE_OUTPUT, LIST_STATUS, DICT_STATUS_MAPPING, LIST_SCHEMA_MAPPING, QUERY_CREATE_TABLE_ENTITIES, QUERY_INSERT_UPDATE_ENTITY
 
 load_dotenv()
 DICT_LOG_LEVEL_REFERENCE = {
@@ -22,6 +24,16 @@ CSV_PATH = os.environ.get("CSV_PATH")
 if not CSV_PATH:
     raise Exception("CSV path in .env is needed to continue!")
 CSV_DATA_SEPARATOR = os.environ.get("CSV_DATA_SEPARATOR", ",")
+MYSQL_CONNECTION_CREDENTIAL = {
+    "HOST": os.environ.get("MYSQL_HOST"),
+    "PORT": os.environ.get("MYSQL_PORT"),
+    "USER": os.environ.get("MYSQL_USER"),
+    "PASSWORD": os.environ.get("MYSQL_PASSWORD"),
+    "SCHEMA": os.environ.get("MYSQL_SCHEMA"),
+    "TABLE_ENTITIES": os.environ.get("MYSQL_TABLE_ENTITIES")
+}
+if not all(MYSQL_CONNECTION_CREDENTIAL.values()):
+    raise Exception("MySQL connection credentials in .env are needed to continue!")
 
 logging.basicConfig(
     format="[%(asctime)s][%(name)-5s][%(levelname)-5s] %(message)s (%(filename)s:%(lineno)d)",
@@ -457,13 +469,65 @@ def transform_fields(df_in):
             df_processing[item[1]] = df_processing[item[1]].astype("int")
         if item[2] == "date":
             df_processing[item[1]] = pd.to_datetime(df_processing[item[1]])
+        df_processing[item[1]] = df_processing[item[1]].replace({pd.NA: None})
     df_out = df_processing[[x[1] for x in LIST_SCHEMA_MAPPING]]
     return df_out
+
+def load_to_MySQL(dict_connection_credential, df_upload):
+    """Load data to MySQL database.
+
+    Args:
+        dict_connection_credential (dict): contain credential to connect MySQL database
+        df_upload (dataframe): The pandas dataframe to be uploaded to MySQL database.
+
+    Returns:
+        affected_rows (int): Number of affected rows.
+    """
+    try:
+        # Establish the connection to the MySQL server
+        cnx = mysql.connector.connect(
+            host=dict_connection_credential["HOST"],
+            port=int(dict_connection_credential["PORT"]),
+            user=dict_connection_credential["USER"],
+            password=dict_connection_credential["PASSWORD"],
+            database=dict_connection_credential["SCHEMA"]
+        )
+        cur = cnx.cursor()
+
+        # Create table if not exist.
+        cur.execute(QUERY_CREATE_TABLE_ENTITIES.replace('<TABLE_NAME>', dict_connection_credential["TABLE_ENTITIES"]))
+        logging.info(f'- Table "{dict_connection_credential["TABLE_ENTITIES"]}" ensured to exist (created if not present)')
+
+        affected_rows = None
+
+        # Insert or update the data
+        cur.executemany(QUERY_INSERT_UPDATE_ENTITY.replace('<TABLE_NAME>', dict_connection_credential["TABLE_ENTITIES"]), list(df_upload.itertuples(index=False, name=None)))
+
+        # Commit the changes to the database
+        cnx.commit()
+
+        affected_rows = cur.rowcount
+        logging.info(f'- {affected_rows} rows affected (inserted or updated).')
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            logging.error('- Something is wrong with user name or password!')
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            logging.error(f'- Database {dict_connection_credential["SCHEMA"]} does not exist!')
+        else:
+            print(err)
+    finally:
+        # Close the cursor and connection
+        if cnx.is_connected():
+            cur.close()
+            cnx.close()
+            logging.info('- MySQL connection is closed.')
+    return affected_rows
 
 if __name__ == "__main__":
     # Ingest CSV data
     logging.info('Ingest CSV data.')
     df_source = ingest_csv(CSV_PATH, CSV_DATA_SEPARATOR)
+    processed_rows = len(df_source)
     # Cleanse data
     logging.info('Cleanse data.')
     df_cleanse = cleanse_data(df_source)
@@ -482,5 +546,6 @@ if __name__ == "__main__":
     df_fit_schema = transform_fields(df_business_rules_accept)
     # Load clean data into MySQL tables
     logging.info('Load to MySQL tables.')
+    uploaded_rows = load_to_MySQL(MYSQL_CONNECTION_CREDENTIAL, df_fit_schema)
     # Quarantine rejected/problematic records for manual review
     logging.info('Quarantine rejected/problematic records.')

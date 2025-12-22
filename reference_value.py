@@ -38,3 +38,60 @@ LIST_SCHEMA_MAPPING = [
     ("ContactEmail", "contact_email", "string"),
     ("LastUpdate", "last_update", "date")
 ]
+
+QUERY_CREATE_TABLE_ENTITIES = """
+CREATE TABLE IF NOT EXISTS <TABLE_NAME> (
+    entity_id INT PRIMARY KEY AUTO_INCREMENT,
+    entity_name VARCHAR(150) NOT NULL,
+    entity_type VARCHAR(30),
+    registration_number VARCHAR(50),
+    incorporation_date DATE,
+    country_code VARCHAR(3),
+    state_code VARCHAR(50),
+    status VARCHAR(30),
+    industry VARCHAR(100),
+    contact_email VARCHAR(100),
+    last_update DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+"""
+
+QUERY_INSERT_UPDATE_ENTITY = """
+INSERT INTO <TABLE_NAME> (
+    entity_id,
+    entity_name,
+    entity_type,
+    registration_number,
+    incorporation_date,
+    country_code,
+    state_code,
+    status,
+    industry,
+    contact_email,
+    last_update
+)
+VALUES (
+    %s,
+    %s,
+    %s,
+    %s,
+    %s,
+    %s,
+    %s,
+    %s,
+    %s,
+    %s,
+    %s
+)
+ON DUPLICATE KEY UPDATE
+    entity_name = VALUES(entity_name),
+    entity_type = VALUES(entity_type),
+    registration_number = VALUES(registration_number),
+    incorporation_date = VALUES(incorporation_date),
+    country_code = VALUES(country_code),
+    state_code = VALUES(state_code),
+    status = VALUES(status),
+    industry = VALUES(industry),
+    contact_email = VALUES(contact_email),
+    last_update = VALUES(last_update);
+"""
