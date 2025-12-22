@@ -97,7 +97,7 @@ def process_entityName(df_processing):
         logging.error('-- Column "EntityName" is missed in CSV data.')
         raise Exception("CSV data has missed some columns")
     # Remove whitespace
-    df_processing["EntityName"] = df_processing["EntityName"].apply(lambda x: x.strip() if x is not pd.NA else x, by_row='compat').astype("string")
+    df_processing["EntityName"] = df_processing["EntityName"].apply(lambda x: x.strip() if x is not pd.NA else x).astype("string")
     # Validate EntityName contains value or not, reject when it is fail
     df_processing["EntityName_reject"] = df_processing["EntityName"].apply(lambda x: True if x is pd.NA or x == "" or x == " " else False)
     return df_processing
@@ -115,9 +115,9 @@ def process_entityType(df_processing):
         logging.error('-- Column "EntityType" is missed in CSV data.')
         raise Exception("CSV data has missed some columns")
     # Remove whitespace
-    df_processing["EntityType"] = df_processing["EntityType"].apply(lambda x: x.strip() if x is not pd.NA else x, by_row='compat').astype("string")
+    df_processing["EntityType"] = df_processing["EntityType"].apply(lambda x: x.strip() if x is not pd.NA else x).astype("string")
     # Uppercase the first letter and lowercase the remaining letters
-    df_processing["EntityType"] = df_processing["EntityType"].apply(lambda x: x[0].upper() + x[1:].lower() if x is not pd.NA else x, by_row='compat').astype("string")
+    df_processing["EntityType"] = df_processing["EntityType"].apply(lambda x: x[0].upper() + x[1:].lower() if x is not pd.NA else x).astype("string")
     # Validate EntityType as expected value or not, reject when it is fail
     df_processing["EntityType_reject"] = df_processing["EntityType"].apply(lambda x: True if x is pd.NA or x not in LIST_ENTITY_TYPE else False)
     return df_processing
@@ -135,9 +135,9 @@ def process_registrationNumber(df_processing):
         logging.error('-- Column "RegistrationNumber" is missed in CSV data.')
         raise Exception("CSV data has missed some columns")
     # Remove whitespace
-    df_processing["RegistrationNumber"] = df_processing["RegistrationNumber"].apply(lambda x: x.strip() if x is not pd.NA else x, by_row='compat').astype("string")
+    df_processing["RegistrationNumber"] = df_processing["RegistrationNumber"].apply(lambda x: x.strip() if x is not pd.NA else x).astype("string")
     # Uppercase all letters
-    df_processing["RegistrationNumber"] = df_processing["RegistrationNumber"].apply(lambda x: x.upper() if x is not pd.NA else x, by_row='compat').astype("string")
+    df_processing["RegistrationNumber"] = df_processing["RegistrationNumber"].apply(lambda x: x.upper() if x is not pd.NA else x).astype("string")
     # Validate RegistrationNumber as expected format or not, reject when it is fail
     df_processing["RegistrationNumber_reject"] = df_processing["RegistrationNumber"].apply(lambda x: True if x is not pd.NA and re.fullmatch(REGEX_PATTERN_REGISTRATION_NUMBER, x) is None else False)
     return df_processing
@@ -155,9 +155,9 @@ def process_incorporationDate(df_processing):
         logging.error('-- Column "IncorporationDate" is missed in CSV data.')
         raise Exception("CSV data has missed some columns")
     # Remove whitespace
-    df_processing["IncorporationDate"] = df_processing["IncorporationDate"].apply(lambda x: x.strip() if x is not pd.NA else x, by_row='compat').astype("string")
+    df_processing["IncorporationDate"] = df_processing["IncorporationDate"].apply(lambda x: x.strip() if x is not pd.NA else x).astype("string")
     # Revise date format if necessary
-    df_processing["IncorporationDate"] = df_processing["IncorporationDate"].apply(lambda x: revise_date_format(x) if x is not pd.NA else x, by_row='compat').astype("string")
+    df_processing["IncorporationDate"] = df_processing["IncorporationDate"].apply(lambda x: revise_date_format(x) if x is not pd.NA else x).astype("string")
     # Validate IncorporationDate as expected format or not, reject when it is fail
     df_processing["IncorporationDate_reject"] = df_processing["IncorporationDate"].apply(lambda x: True if x is not pd.NA and re.fullmatch(REGEX_PATTERN_DATE_FORMAT, x) is None else False)
     return df_processing
@@ -228,13 +228,13 @@ def process_countryCode(df_processing):
         logging.error('-- Column "CountryCode" is missed in CSV data.')
         raise Exception("CSV data has missed some columns")
     # Remove whitespace and uppercase the whole string
-    df_processing["CountryCode_revised"] = df_processing["CountryCode"].apply(lambda x: x.strip().upper() if x is not pd.NA else x, by_row='compat').astype("string")
+    df_processing["CountryCode_revised"] = df_processing["CountryCode"].apply(lambda x: x.strip().upper() if x is not pd.NA else x).astype("string")
     # Extract the first two letters if correct format is found
-    df_processing["CountryCode_revised"] = df_processing["CountryCode_revised"].apply(lambda x: x[0:1] if x is not pd.NA and re.fullmatch(REGEX_PATTERN_COUNTRY_CODE_OUTPUT + r"(?:-.+)?", x) is not None else x, by_row='compat').astype("string")
+    df_processing["CountryCode_revised"] = df_processing["CountryCode_revised"].apply(lambda x: x[0:1] if x is not pd.NA and re.fullmatch(REGEX_PATTERN_COUNTRY_CODE_OUTPUT + r"(?:-.+)?", x) is not None else x).astype("string")
     # Check the CountryCode is valid or not, remove if it not valid
-    df_processing["CountryCode_revised"] = df_processing["CountryCode_revised"].apply(lambda x: pycountry.countries.get(alpha_2=x).alpha_2 if x is not pd.NA and pycountry.countries.get(alpha_2=x) is not None else pd.NA, by_row='compat').astype("string")
+    df_processing["CountryCode_revised"] = df_processing["CountryCode_revised"].apply(lambda x: pycountry.countries.get(alpha_2=x).alpha_2 if x is not pd.NA and pycountry.countries.get(alpha_2=x) is not None else pd.NA).astype("string")
     # Use Country to provide CountryCode if CountryCode is missing
-    df_processing["CountryCode_revised"] = df_processing.apply(lambda x: convert_country_name_to_country_code(x["Country"]) if x["CountryCode_revised"] is pd.NA and "Country" in x.keys() and x["Country"] is not pd.NA else x["CountryCode_revised"], by_row='compat', axis=1).astype("string")
+    df_processing["CountryCode_revised"] = df_processing.apply(lambda x: convert_country_name_to_country_code(x["Country"]) if x["CountryCode_revised"] is pd.NA and "Country" in x.keys() and x["Country"] is not pd.NA else x["CountryCode_revised"], axis=1).astype("string")
     # Validate CountryCode as expected format or not, reject when it is fail
     df_processing["CountryCode_reject"] = df_processing["CountryCode_revised"].apply(lambda x: True if x is pd.NA or (x is not pd.NA and re.fullmatch(REGEX_PATTERN_COUNTRY_CODE_OUTPUT, x) is None) else False)
     return df_processing
@@ -272,15 +272,15 @@ def process_stateCode(df_processing):
         logging.error('-- Column "StateCode" is missed in CSV data.')
         raise Exception("CSV data has missed some columns")
     # Remove whitespace and uppercase the whole string
-    df_processing["StateCode_revised"] = df_processing["StateCode"].apply(lambda x: x.strip().upper() if x is not pd.NA else x, by_row='compat').astype("string")
+    df_processing["StateCode_revised"] = df_processing["StateCode"].apply(lambda x: x.strip().upper() if x is not pd.NA else x).astype("string")
     # Remove if StateCode is same as CountryCode
-    df_processing["StateCode_revised"] = df_processing.apply(lambda x: pd.NA if x["StateCode_revised"] is not pd.NA and "CountryCode_revised" in x.keys() and x["CountryCode_revised"] is not pd.NA and x["StateCode_revised"] == x["CountryCode_revised"] else x["StateCode_revised"], by_row='compat', axis=1).astype("string")
+    df_processing["StateCode_revised"] = df_processing.apply(lambda x: pd.NA if x["StateCode_revised"] is not pd.NA and "CountryCode_revised" in x.keys() and x["CountryCode_revised"] is not pd.NA and x["StateCode_revised"] == x["CountryCode_revised"] else x["StateCode_revised"], axis=1).astype("string")
     # Extract the subdivison code from CountryCode if CountryCode is in specific format
-    df_processing["StateCode_revised"] = df_processing.apply(lambda x: re.fullmatch(REGEX_PATTERN_COUNTRY_CODE_OUTPUT + r"-(.+)", x["CountryCode"]).group(0) if x["StateCode_revised"] is pd.NA and "CountryCode" in x.keys() and x["CountryCode"] is not pd.NA and re.fullmatch(REGEX_PATTERN_COUNTRY_CODE_OUTPUT + r"-(.+)", x["CountryCode"]) is not None else x["StateCode_revised"], by_row='compat', axis=1).astype("string")
+    df_processing["StateCode_revised"] = df_processing.apply(lambda x: re.fullmatch(REGEX_PATTERN_COUNTRY_CODE_OUTPUT + r"-(.+)", x["CountryCode"]).group(0) if x["StateCode_revised"] is pd.NA and "CountryCode" in x.keys() and x["CountryCode"] is not pd.NA and re.fullmatch(REGEX_PATTERN_COUNTRY_CODE_OUTPUT + r"-(.+)", x["CountryCode"]) is not None else x["StateCode_revised"], axis=1).astype("string")
     # Check the StateCode is valid or not, remove if it not valid
-    df_processing["StateCode_revised"] = df_processing.apply(lambda x: pycountry.subdivisions.get(code=x["CountryCode_revised"] + "-" + x["StateCode_revised"]).code.split("-")[1] if x["StateCode_revised"] is not pd.NA and "CountryCode_revised" in x.keys() and x["CountryCode_revised"] is not pd.NA and x["StateCode_revised"] != x["CountryCode_revised"] and pycountry.subdivisions.get(code=x["CountryCode_revised"] + "-" + x["StateCode_revised"]) is not None else pd.NA, by_row='compat', axis=1).astype("string")
+    df_processing["StateCode_revised"] = df_processing.apply(lambda x: pycountry.subdivisions.get(code=x["CountryCode_revised"] + "-" + x["StateCode_revised"]).code.split("-")[1] if x["StateCode_revised"] is not pd.NA and "CountryCode_revised" in x.keys() and x["CountryCode_revised"] is not pd.NA and x["StateCode_revised"] != x["CountryCode_revised"] and pycountry.subdivisions.get(code=x["CountryCode_revised"] + "-" + x["StateCode_revised"]) is not None else pd.NA, axis=1).astype("string")
     # Use State to provide StateCode if StateCode is missing
-    df_processing["StateCode_revised"] = df_processing.apply(lambda x: convert_state_name_to_state_code(x["State"], x["CountryCode_revised"] if "CountryCode_revised" in x.keys() else pd.NA) if x["StateCode_revised"] is pd.NA and "State" in x.keys() and x["State"] is not pd.NA else x["StateCode_revised"], by_row='compat', axis=1).astype("string")
+    df_processing["StateCode_revised"] = df_processing.apply(lambda x: convert_state_name_to_state_code(x["State"], x["CountryCode_revised"] if "CountryCode_revised" in x.keys() else pd.NA) if x["StateCode_revised"] is pd.NA and "State" in x.keys() and x["State"] is not pd.NA else x["StateCode_revised"], axis=1).astype("string")
     # Invalid value is removed and missing value is allowed, thus none of the records will be rejected due to StateCode
     df_processing["StateCode_reject"] = False
     return df_processing
@@ -328,11 +328,11 @@ def process_status(df_processing):
         logging.error('-- Column "Status" is missed in CSV data.')
         raise Exception("CSV data has missed some columns")
     # Remove whitespace
-    df_processing["Status"] = df_processing["Status"].apply(lambda x: x.strip() if x is not pd.NA else x, by_row='compat').astype("string")
+    df_processing["Status"] = df_processing["Status"].apply(lambda x: x.strip() if x is not pd.NA else x).astype("string")
     # Convert "Y" to "Active", "N" to "Inactive"
-    df_processing["Status"] = df_processing["Status"].apply(lambda x: DICT_STATUS_MAPPING.get(x, x) if x is not pd.NA else x, by_row='compat').astype("string")
+    df_processing["Status"] = df_processing["Status"].apply(lambda x: DICT_STATUS_MAPPING.get(x, x) if x is not pd.NA else x).astype("string")
     # Standardize the wordings
-    df_processing["Status"] = df_processing["Status"].apply(lambda x: re.fullmatch(rf"({"|".join(LIST_STATUS)}).*", x).group(1) if x is not pd.NA and re.fullmatch(rf"({"|".join(LIST_STATUS)}).*", x) is not None else x, by_row='compat').astype("string")
+    df_processing["Status"] = df_processing["Status"].apply(lambda x: re.fullmatch(rf"({"|".join(LIST_STATUS)}).*", x).group(1) if x is not pd.NA and re.fullmatch(rf"({"|".join(LIST_STATUS)}).*", x) is not None else x).astype("string")
     # Validate Status as expected value or not, reject when it is fail
     df_processing["Status_reject"] = df_processing["Status"].apply(lambda x: True if x is pd.NA or (x is not pd.NA and x not in LIST_STATUS) else False)
     return df_processing
@@ -350,11 +350,11 @@ def process_industry(df_processing):
         logging.error('-- Column "Industry" is missed in CSV data.')
         raise Exception("CSV data has missed some columns")
     # Remove whitespace
-    df_processing["Industry"] = df_processing["Industry"].apply(lambda x: x.strip() if x is not pd.NA else x, by_row='compat').astype("string")
+    df_processing["Industry"] = df_processing["Industry"].apply(lambda x: x.strip() if x is not pd.NA else x).astype("string")
     # Remove "NULL"
-    df_processing["Industry"] = df_processing["Industry"].apply(lambda x: pd.NA if x is not pd.NA and x == "NULL" else x, by_row='compat').astype("string")
+    df_processing["Industry"] = df_processing["Industry"].apply(lambda x: pd.NA if x is not pd.NA and x == "NULL" else x).astype("string")
     # Standardize capitalization
-    df_processing["Industry"] = df_processing["Industry"].apply(lambda x: " ".join([y[0].upper() + y[1:].lower() for y in x.split(" ")]) if x is not pd.NA else x, by_row='compat').astype("string")
+    df_processing["Industry"] = df_processing["Industry"].apply(lambda x: " ".join([y[0].upper() + y[1:].lower() for y in x.split(" ")]) if x is not pd.NA else x).astype("string")
     # None of the records will be rejected due to Industry
     df_processing["Industry_reject"] = False
     return df_processing
@@ -372,7 +372,7 @@ def process_contactEmail(df_processing):
         logging.error('-- Column "ContactEmail" is missed in CSV data.')
         raise Exception("CSV data has missed some columns")
     # Remove whitespace
-    df_processing["ContactEmail"] = df_processing["ContactEmail"].apply(lambda x: x.strip() if x is not pd.NA else x, by_row='compat').astype("string")
+    df_processing["ContactEmail"] = df_processing["ContactEmail"].apply(lambda x: x.strip() if x is not pd.NA else x).astype("string")
     # Validate ContactEmail as expected format or not, reject when it is fail
     df_processing["ContactEmail_reject"] = df_processing["ContactEmail"].apply(lambda x: True if x is not pd.NA and re.fullmatch(r".+@.+", x) is None else False)
     return df_processing
@@ -391,9 +391,9 @@ def process_lastUpdate(df_processing):
         logging.error('-- Column "LastUpdate" is missed in CSV data.')
         raise Exception("CSV data has missed some columns")
     # Remove whitespace
-    df_processing["LastUpdate"] = df_processing["LastUpdate"].apply(lambda x: x.strip() if x is not pd.NA else x, by_row='compat').astype("string")
+    df_processing["LastUpdate"] = df_processing["LastUpdate"].apply(lambda x: x.strip() if x is not pd.NA else x).astype("string")
     # Revise date format if necessary
-    df_processing["LastUpdate"] = df_processing["LastUpdate"].apply(lambda x: revise_date_format(x) if x is not pd.NA else x, by_row='compat').astype("string")
+    df_processing["LastUpdate"] = df_processing["LastUpdate"].apply(lambda x: revise_date_format(x) if x is not pd.NA else x).astype("string")
     # Validate LastUpdate as expected format or not, reject when it is fail
     df_processing["LastUpdate_reject"] = df_processing["LastUpdate"].apply(lambda x: True if x is not pd.NA and re.fullmatch(REGEX_PATTERN_DATE_FORMAT, x) is None else False)
     return df_processing
