@@ -95,7 +95,7 @@ def cleanse_data(df_original):
         "Industry_reject",
         "ContactEmail_reject",
         "LastUpdate_reject"
-        ]].all(axis=1)
+        ]].any(axis=1)
     return df_processing
 
 def process_entityName(df_processing):
