@@ -70,7 +70,7 @@ def cleanse_data(df_original):
     df_processing = process_contactEmail(df_processing)
     logging.info('- Process column LastUpdate.')
     df_processing = process_lastUpdate(df_processing)
-    df_processing["reject"] = df_processing[[
+    df_processing["cleanse_reject"] = df_processing[[
         "EntityName_reject",
         "EntityType_reject",
         "RegistrationNumber_reject",
@@ -428,8 +428,8 @@ if __name__ == "__main__":
     # Cleanse data
     logging.info('Cleanse data.')
     df_clean = cleanse_data(df_source)
-    df_clean_without_reject = df_clean[df_clean["reject"]  == False]
-    df_clean_with_reject = df_clean[df_clean["reject"]  == True]
+    df_clean_without_reject = df_clean[df_clean["cleanse_reject"]  == False]
+    df_clean_with_reject = df_clean[df_clean["cleanse_reject"]  == True]
     # Deduplicate records
     logging.info('Deduplicate records.')
     df_deduplicate, df_duplicate_reject = deduplicate_records(df_clean_without_reject)
