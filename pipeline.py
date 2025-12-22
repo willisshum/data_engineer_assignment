@@ -496,6 +496,7 @@ def load_to_MySQL(dict_connection_credential, df_upload):
             database=dict_connection_credential["SCHEMA"]
         )
         cur = cnx.cursor()
+        logging.info('- MySQL connection is created.')
 
         # Create table if not exist.
         cur.execute(QUERY_CREATE_TABLE_ENTITIES.replace('<TABLE_NAME>', dict_connection_credential["TABLE_ENTITIES"]))
@@ -510,7 +511,7 @@ def load_to_MySQL(dict_connection_credential, df_upload):
         cnx.commit()
 
         affected_rows = cur.rowcount
-        logging.info(f'- {affected_rows} rows affected (inserted or updated).')
+        logging.info(f'- {affected_rows} rows affected (inserted or updated) in table "{dict_connection_credential["TABLE_ENTITIES"]}".')
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
             logging.error('- Something is wrong with user name or password!')
@@ -527,6 +528,7 @@ def load_to_MySQL(dict_connection_credential, df_upload):
     return affected_rows
 
 if __name__ == "__main__":
+    logging.info('Pipeline Start!')
     # Ingest CSV data
     logging.info('Ingest CSV data.')
     df_source = ingest_csv(SOURCE_CSV_PATH, SOURCE_CSV_DATA_SEPARATOR)
@@ -552,3 +554,4 @@ if __name__ == "__main__":
     uploaded_rows = load_to_MySQL(MYSQL_CONNECTION_CREDENTIAL, df_fit_schema)
     # Quarantine rejected/problematic records for manual review
     logging.info('Quarantine rejected/problematic records.')
+    logging.info('Pipeline End!')
