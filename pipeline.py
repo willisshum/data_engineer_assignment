@@ -422,12 +422,12 @@ def deduplicate_records(df_in):
         df_deduplicate (dataframe): The pandas dataframe which is deduplicated.
         df_duplicate_reject (dataframe): The pandas dataframe which is duplicate in EntityName and EntityType but other information is different.
     """
-    df_processing = df_in.copy(deep=True)
+    df_processing = df_in.drop([x for x in df_in.columns if re.fullmatch(r".*(reject)$", x) is not None], axis=1).copy(deep=True)
     df_processing["duplicate_candidate"] = df_processing[["EntityName", "EntityType"]].duplicated(keep=False)
     df_duplicate_reject = pd.DataFrame(columns=df_processing.columns).astype(df_processing.dtypes)
     logging.info('- Decouple unique records and duplicate candidates.')
-    df_deduplicate = df_processing[df_processing["duplicate_candidate"] == False]
-    df_duplicate_candidate = df_processing[df_processing["duplicate_candidate"] == True]
+    df_deduplicate = df_processing[df_processing["duplicate_candidate"] == False].copy(deep=True)
+    df_duplicate_candidate = df_processing[df_processing["duplicate_candidate"] == True].copy(deep=True)
     logging.info('- Checking all useful columns to decide whether it is duplicate reject case or not for each duplicate candidate group.')
     list_of_df_duplicate_candidate_group = [group for name, group in df_duplicate_candidate.groupby(["EntityName", "EntityType"])]
     for x in list_of_df_duplicate_candidate_group:
@@ -448,7 +448,7 @@ def validate_business_rules(df_in):
     Returns:
         df_processing (dataframe): The pandas dataframe which is validated against business rules.
     """
-    df_processing = df_in.copy(deep=True)
+    df_processing = df_in.drop([x for x in df_in.columns if re.fullmatch(r".*(reject)$", x) is not None], axis=1).copy(deep=True)
     df_processing["business_rules_reject"] = False
     # Validate IncorporationDate has value or not, reject when it is fail
     logging.info('- Validate IncorporationDate.')
