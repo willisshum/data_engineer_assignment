@@ -19,7 +19,9 @@ DICT_LOG_LEVEL_REFERENCE = {
 }
 LOG_LEVEL = DICT_LOG_LEVEL_REFERENCE[os.environ.get("LOG_LEVEL", "INFO")]
 CSV_PATH = os.environ.get("CSV_PATH")
-CSV_DATA_SEPARATOR = os.environ.get("CSV_DATA_SEPARATOR")
+if not CSV_PATH:
+    raise Exception("CSV path in .env is needed to continue!")
+CSV_DATA_SEPARATOR = os.environ.get("CSV_DATA_SEPARATOR", ",")
 
 logging.basicConfig(
     format="[%(asctime)s][%(name)-5s][%(levelname)-5s] %(message)s (%(filename)s:%(lineno)d)",
