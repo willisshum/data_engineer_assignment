@@ -24,16 +24,16 @@ DICT_STATUS_MAPPING = {
     "N": "Inactive"
 }
 
-# For each tuple, the first value is CSV column, the second value is MySQL schema
+# For each tuple, the first value is CSV column, the second value is MySQL schema, the third value is data type
 LIST_SCHEMA_MAPPING = [
-    ("EntityName", "entity_name"),
-    ("EntityType", "entity_type"),
-    ("RegistrationNumber", "registration_number"),
-    ("IncorporationDate", "incorporation_date"),
-    ("CountryCode_revised", "country_code"),
-    ("StateCode_revised", "state_code"),
-    ("Status", "status"),
-    ("Industry", "industry"),
-    ("ContactEmail", "contact_email"),
-    ("LastUpdate", "last_update")
+    ("EntityName", "entity_name", "string"),
+    ("EntityType", "entity_type", "string"),
+    ("RegistrationNumber", "registration_number", "string"),
+    ("IncorporationDate", "incorporation_date", "date"),
+    ("CountryCode_revised", "country_code", "string"),
+    ("StateCode_revised", "state_code", "string"),
+    ("Status", "status", "string"),
+    ("Industry", "industry", "string"),
+    ("ContactEmail", "contact_email", "string"),
+    ("LastUpdate", "last_update", "date")
 ]

@@ -2,8 +2,9 @@ import unittest
 import pandas as pd
 import re
 from pandas.testing import assert_frame_equal
+from datetime import date
 
-from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber, process_incorporationDate, process_countryCode, process_stateCode, process_status, process_industry, process_contactEmail, process_lastUpdate, deduplicate_records, validate_business_rules
+from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber, process_incorporationDate, process_countryCode, process_stateCode, process_status, process_industry, process_contactEmail, process_lastUpdate, deduplicate_records, validate_business_rules, transform_fields
 
 class TestPipeLine(unittest.TestCase):
     def test_ingest_csv(self):
@@ -827,6 +828,93 @@ class TestPipeLine(unittest.TestCase):
         df_testing = pd.DataFrame(data_testing, dtype=pd.StringDtype())
         df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
         df_testing = validate_business_rules(df_testing)
+        assert_frame_equal(df_testing, df_expected)
+
+    def test_transform_fields(self):
+        """Test that it can transform fields.
+        """
+        data_testing = {
+            "EntityID": [
+                "1096"
+            ],
+            "EntityName": [
+                "Bluebell Trust"
+            ],
+            "EntityType": [
+                "Trust"
+            ],
+            "RegistrationNumber": [
+                "REG33817"
+            ],
+            "IncorporationDate": [
+                "2010-10-08"
+            ],
+            "CountryCode_revised": [
+                "AU"
+            ],
+            "StateCode_revised": [
+                "SYD"
+            ],
+            "Status": [
+                "Active"
+            ],
+            "Industry": [
+                "Trust"
+            ],
+            "ContactEmail": [
+                "info@bluebelltrust.au"
+            ],
+            "LastUpdate": [
+                "2022-05-30"
+            ]
+        }
+        data_expected = {
+            "entity_name": [
+                "Bluebell Trust"
+            ],
+            "entity_type": [
+                "Trust"
+            ],
+            "registration_number": [
+                "REG33817"
+            ],
+            "incorporation_date": [
+                date.strptime("2010-10-08", "%Y-%m-%d")
+            ],
+            "country_code": [
+                "AU"
+            ],
+            "state_code": [
+                "SYD"
+            ],
+            "status": [
+                "Active"
+            ],
+            "industry": [
+                "Trust"
+            ],
+            "contact_email": [
+                "info@bluebelltrust.au"
+            ],
+            "last_update": [
+                date.strptime("2022-05-30", "%Y-%m-%d")
+            ]
+        }
+        dtype_mapping = {
+            "entity_name": "string",
+            "entity_type": "string",
+            "registration_number": "string",
+            "incorporation_date": "datetime64[ns]",
+            "country_code": "string",
+            "state_code": "string",
+            "status": "string",
+            "industry": "string",
+            "contact_email": "string",
+            "last_update": "datetime64[ns]"
+        }
+        df_testing = pd.DataFrame(data_testing, dtype=pd.StringDtype())
+        df_expected = pd.DataFrame(data_expected).astype(dtype_mapping)
+        df_testing = transform_fields(df_testing)
         assert_frame_equal(df_testing, df_expected)
 
 if __name__ == "__main__":

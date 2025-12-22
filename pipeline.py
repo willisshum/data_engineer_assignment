@@ -438,6 +438,24 @@ def validate_business_rules(df_in):
     df_processing["business_rules_reject"] = df_processing.apply(lambda x: True if x["IncorporationDate"] is pd.NA else x["business_rules_reject"], axis=1)
     return df_processing
 
+def transform_fields(df_in):
+    """Transform fields to fit MySQL schema.
+
+    Args:
+        df_in (dataframe): The pandas dataframe needed to be transformed.
+
+    Returns:
+        df_out (dataframe): The pandas dataframe with transformation.
+    """
+    df_processing = df_in.copy(deep=True)
+    for item in LIST_SCHEMA_MAPPING:
+        logging.info(f'- Rename {item[0]} as {item[1]} and convert as {item[2]} type.')
+        df_processing.rename(columns={item[0]: item[1]}, inplace=True)
+        if item[2] == "date":
+            df_processing[item[1]] = pd.to_datetime(df_processing[item[1]])
+    df_out = df_processing[[x[1] for x in LIST_SCHEMA_MAPPING]]
+    return df_out
+
 if __name__ == "__main__":
     # Ingest CSV data
     logging.info('Ingest CSV data.')
@@ -457,6 +475,7 @@ if __name__ == "__main__":
     df_business_rules_reject = df_business_rules[df_business_rules["business_rules_reject"] == True]
     # Transform fields to fit MySQL schema
     logging.info('Transform to fit MySQL schema.')
+    df_fit_schema = transform_fields(df_business_rules_accept)
     # Load clean data into MySQL tables
     logging.info('Load to MySQL tables.')
     # Quarantine rejected/problematic records for manual review
