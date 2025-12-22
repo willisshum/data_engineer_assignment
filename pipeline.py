@@ -20,10 +20,10 @@ DICT_LOG_LEVEL_REFERENCE = {
     "DEBUG": logging.DEBUG
 }
 LOG_LEVEL = DICT_LOG_LEVEL_REFERENCE[os.environ.get("LOG_LEVEL", "INFO")]
-CSV_PATH = os.environ.get("CSV_PATH")
-if not CSV_PATH:
-    raise Exception("CSV path in .env is needed to continue!")
-CSV_DATA_SEPARATOR = os.environ.get("CSV_DATA_SEPARATOR", ",")
+SOURCE_CSV_PATH = os.environ.get("SOURCE_CSV_PATH")
+if not SOURCE_CSV_PATH:
+    raise Exception("Source CSV path in .env is needed to continue!")
+SOURCE_CSV_DATA_SEPARATOR = os.environ.get("SOURCE_CSV_DATA_SEPARATOR", ",")
 MYSQL_CONNECTION_CREDENTIAL = {
     "HOST": os.environ.get("MYSQL_HOST"),
     "PORT": os.environ.get("MYSQL_PORT"),
@@ -526,7 +526,7 @@ def load_to_MySQL(dict_connection_credential, df_upload):
 if __name__ == "__main__":
     # Ingest CSV data
     logging.info('Ingest CSV data.')
-    df_source = ingest_csv(CSV_PATH, CSV_DATA_SEPARATOR)
+    df_source = ingest_csv(SOURCE_CSV_PATH, SOURCE_CSV_DATA_SEPARATOR)
     processed_rows = len(df_source)
     # Cleanse data
     logging.info('Cleanse data.')
