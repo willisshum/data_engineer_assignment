@@ -427,12 +427,12 @@ if __name__ == "__main__":
     df_source = ingest_csv(CSV_PATH, CSV_DATA_SEPARATOR)
     # Cleanse data
     logging.info('Cleanse data.')
-    df_clean = cleanse_data(df_source)
-    df_clean_without_reject = df_clean[df_clean["cleanse_reject"]  == False]
-    df_clean_with_reject = df_clean[df_clean["cleanse_reject"]  == True]
+    df_cleanse = cleanse_data(df_source)
+    df_cleanse_accept = df_cleanse[df_cleanse["cleanse_reject"]  == False]
+    df_cleanse_reject = df_cleanse[df_cleanse["cleanse_reject"]  == True]
     # Deduplicate records
     logging.info('Deduplicate records.')
-    df_deduplicate, df_duplicate_reject = deduplicate_records(df_clean_without_reject)
+    df_deduplicate, df_duplicate_reject = deduplicate_records(df_cleanse_accept)
     # Validate data against business rules
     logging.info('Validate against business rules.')
     # Transform fields to fit MySQL schema
