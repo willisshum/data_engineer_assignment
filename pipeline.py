@@ -421,6 +421,23 @@ def deduplicate_records(df_in):
         else:
             df_duplicate_reject = pd.concat([df_duplicate_reject, x], ignore_index=True)
     return df_deduplicate, df_duplicate_reject
+
+def validate_business_rules(df_in):
+    """Validate the input dataframe with business rule.
+
+    Args:
+        df_in (dataframe): The pandas dataframe needed to be validated.
+
+    Returns:
+        df_processing (dataframe): The pandas dataframe which is validated against business rules.
+    """
+    df_processing = df_in.copy(deep=True)
+    df_processing["business_rules_reject"] = False
+    # Validate IncorporationDate has value or not, reject when it is fail
+    logging.info('- Validate IncorporationDate.')
+    df_processing["business_rules_reject"] = df_processing.apply(lambda x: True if x["IncorporationDate"] is pd.NA else x["business_rules_reject"], axis=1)
+    return df_processing
+
 if __name__ == "__main__":
     # Ingest CSV data
     logging.info('Ingest CSV data.')
@@ -435,6 +452,9 @@ if __name__ == "__main__":
     df_deduplicate, df_duplicate_reject = deduplicate_records(df_cleanse_accept)
     # Validate data against business rules
     logging.info('Validate against business rules.')
+    df_business_rules = validate_business_rules(df_deduplicate)
+    df_business_rules_accept = df_business_rules[df_business_rules["business_rules_reject"] == False]
+    df_business_rules_reject = df_business_rules[df_business_rules["business_rules_reject"] == True]
     # Transform fields to fit MySQL schema
     logging.info('Transform to fit MySQL schema.')
     # Load clean data into MySQL tables
