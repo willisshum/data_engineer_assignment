@@ -51,7 +51,7 @@ def ingest_csv(file_path, separator):
     Returns:
         df (dataframe): The pandas dataframe of imported data.
     """
-    df = pd.read_csv(file_path, sep=separator, dtype="string")
+    df = pd.read_csv(file_path, sep=separator, dtype="string", encoding="utf-8")
     return df
 
 def cleanse_data(df_original):
