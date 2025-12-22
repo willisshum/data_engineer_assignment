@@ -517,7 +517,7 @@ def load_to_MySQL(dict_connection_credential, df_upload):
         elif err.errno == errorcode.ER_BAD_DB_ERROR:
             logging.error(f'- Database {dict_connection_credential["SCHEMA"]} does not exist!')
         else:
-            print(err)
+            logging.error(f'- unknown error: {err}')
     finally:
         # Close the cursor and connection
         if cnx.is_connected():
