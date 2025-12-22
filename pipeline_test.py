@@ -693,6 +693,9 @@ class TestPipeLine(unittest.TestCase):
             ],
             "duplicate_candidate": [
                 True
+            ],
+            "duplicate_reject": [
+                False
             ]
         }
         data_expected_duplicate_reject = {
@@ -779,6 +782,13 @@ class TestPipeLine(unittest.TestCase):
                 True,
                 True,
                 True
+            ],
+            "duplicate_reject": [
+                True,
+                True,
+                True,
+                True,
+                True
             ]
         }
         dtype_mapping = {
@@ -793,7 +803,8 @@ class TestPipeLine(unittest.TestCase):
             "Industry": "string",
             "ContactEmail": "string",
             "LastUpdate": "string",
-            "duplicate_candidate": "bool"
+            "duplicate_candidate": "bool",
+            "duplicate_reject": "bool"
         }
         df_testing = pd.DataFrame(data_testing, dtype=pd.StringDtype())
         df_expected_deduplicate = pd.DataFrame(data_expected_deduplicate).astype(dtype_mapping)

@@ -435,6 +435,8 @@ def deduplicate_records(df_in):
             df_deduplicate = pd.concat([df_deduplicate, x.drop_duplicates(subset=[item[0] for item in LIST_SCHEMA_MAPPING if item[0] != "EntityID"])], ignore_index=True)
         else:
             df_duplicate_reject = pd.concat([df_duplicate_reject, x], ignore_index=True)
+    df_deduplicate["duplicate_reject"] = False
+    df_duplicate_reject["duplicate_reject"] = True
     return df_deduplicate, df_duplicate_reject
 
 def validate_business_rules(df_in):
