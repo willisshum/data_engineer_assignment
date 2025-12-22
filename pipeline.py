@@ -511,6 +511,7 @@ def load_to_MySQL(dict_connection_credential, df_upload):
         # Insert or update the data
         cur.executemany(QUERY_INSERT_UPDATE_ENTITY.replace('<TABLE_NAME>', dict_connection_credential["TABLE_ENTITIES"]), list(df_upload.itertuples(index=False, name=None)))
 
+        # MySQL transactions are managed using the connection's commit() in mysql-connector-python
         # Commit the changes to the database
         cnx.commit()
 
