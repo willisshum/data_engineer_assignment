@@ -3,7 +3,7 @@ import os
 import logging
 import pandas as pd
 import re
-from datetime import date
+from datetime import date, datetime
 import pycountry
 from translate import Translator
 import mysql.connector
@@ -34,6 +34,10 @@ MYSQL_CONNECTION_CREDENTIAL = {
 }
 if not all(MYSQL_CONNECTION_CREDENTIAL.values()):
     raise Exception("MySQL connection credentials in .env are needed to continue!")
+QUARANTINE_CSV_PATH = os.environ.get("QUARANTINE_CSV_PATH")
+if not QUARANTINE_CSV_PATH:
+    raise Exception("Quarantine CSV path in .env is needed to continue!")
+QUARANTINE_CSV_DATA_SEPARATOR = os.environ.get("QUARANTINE_CSV_DATA_SEPARATOR", ",")
 
 logging.basicConfig(
     format="[%(asctime)s][%(name)-5s][%(levelname)-5s] %(message)s (%(filename)s:%(lineno)d)",
@@ -527,6 +531,53 @@ def load_to_MySQL(dict_connection_credential, df_upload):
             logging.info('- MySQL connection is closed.')
     return affected_rows
 
+def quarantine_records(file_path, separator, df_processing, list_df_problematic_case):
+    """Quarantine rejected/problematic records into CSV for manual review.
+
+    Args:
+        file_path (str): The path of the quarantine CSV file.
+        separator (str): The separator in the quarantine CSV file.
+        df_processing (dataframe): The pandas dataframe of the original source data.
+        list_df_problematic_case (list): List of pandas dataframe of cases due to cleansing, duplication and business rule.
+
+    Returns:
+        file_path (str): file path of quarantine CSV.
+    """
+    pd.set_option('display.max_columns', None)
+    for df_problematic_case in list_df_problematic_case:
+        df_processing = fill_reject_reason(df_processing, df_problematic_case)
+
+    df_output = df_processing[df_processing[[
+        "cleanse_reject",
+        "duplicate_reject",
+        "business_rules_reject"
+        ]].any(axis=1)]
+
+    now = datetime.now()
+    formatted_datetime = now.strftime("%Y%m%d%H%M%S")
+    file_path_split = file_path.split(".")
+    file_path = '.'.join(file_path_split[0:-1]) + f"_{formatted_datetime}." + file_path_split[-1]
+    df_output.to_csv(file_path, sep=separator, header=True, index=False, mode='w', encoding="utf-8")
+    logging.info(f'- {len(df_output)} records are written in the quarantine CSV.')
+    return file_path
+
+def fill_reject_reason(df_processing, df_problematic_case):
+    """Fill reject reason to data source dataframe.
+
+    Args:
+        df_processing (dataframe): The pandas dataframe of the original source data.
+        df_problematic_case (dataframe): The pandas dataframe of the problematic cases.
+
+    Returns:
+        df_processing (dataframe): The pandas dataframe of the original source data with reject reason.
+    """
+    for column in [x for x in df_problematic_case.columns if re.fullmatch(r".*(reject)$", x) is not None]:
+        logging.info(f'- Copy reject reason "{column}" to the original source data.')
+        list_problematic_id_temp = df_problematic_case.loc[df_problematic_case[column] == True]["EntityID"].to_list()
+        df_processing[column] = False
+        df_processing.loc[df_processing["EntityID"].isin(list_problematic_id_temp), column] = True
+    return df_processing
+
 if __name__ == "__main__":
     logging.info('Pipeline Start!')
     # Ingest CSV data
@@ -554,4 +605,5 @@ if __name__ == "__main__":
     uploaded_rows = load_to_MySQL(MYSQL_CONNECTION_CREDENTIAL, df_fit_schema)
     # Quarantine rejected/problematic records for manual review
     logging.info('Quarantine rejected/problematic records.')
+    _ = quarantine_records(QUARANTINE_CSV_PATH, QUARANTINE_CSV_DATA_SEPARATOR, df_source, [df_cleanse_reject, df_duplicate_reject, df_business_rules_reject])
     logging.info('Pipeline End!')

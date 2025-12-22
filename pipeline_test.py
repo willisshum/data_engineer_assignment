@@ -4,7 +4,7 @@ import re
 from pandas.testing import assert_frame_equal
 from datetime import date
 
-from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber, process_incorporationDate, process_countryCode, process_stateCode, process_status, process_industry, process_contactEmail, process_lastUpdate, deduplicate_records, validate_business_rules, transform_fields, load_to_MySQL, MYSQL_CONNECTION_CREDENTIAL
+from pipeline import ingest_csv, cleanse_data, process_entityName, process_entityType, process_registrationNumber, process_incorporationDate, process_countryCode, process_stateCode, process_status, process_industry, process_contactEmail, process_lastUpdate, deduplicate_records, validate_business_rules, transform_fields, load_to_MySQL, MYSQL_CONNECTION_CREDENTIAL, quarantine_records
 
 class TestPipeLine(unittest.TestCase):
     def test_ingest_csv(self):
@@ -986,6 +986,66 @@ class TestPipeLine(unittest.TestCase):
         df_testing = pd.DataFrame(data_testing).astype(dtype_mapping)
         result = load_to_MySQL(MYSQL_CONNECTION_CREDENTIAL, df_testing)
         self.assertIsNotNone(result, msg=None)
+
+    def test_quarantine_records(self):
+        """Test that it can quarantine records to CSV.
+        """
+        csv_path = "quarantine.csv"
+        csv_data_separator = ","
+        data_testing_source = {
+            "EntityID": [
+                "1096",
+                "1097",
+                "1098",
+                "1099"
+            ]
+        }
+        dtype_mapping_testing_source = {
+            "EntityID": "string"
+        }
+        data_testing_cleanse_reject = {
+            "EntityID": [
+                "1097"
+            ],
+            "cleanse_reject": [
+                True
+            ]
+        }
+        dtype_mapping_testing_cleanse_reject = {
+            "EntityID": "string",
+            "cleanse_reject": "bool"
+        }
+        data_testing_duplicate_reject = {
+            "EntityID": [
+                "1098"
+            ],
+            "duplicate_reject": [
+                True
+            ]
+        }
+        dtype_mapping_testing_duplicate_reject = {
+            "EntityID": "string",
+            "duplicate_reject": "bool"
+        }
+        data_testing_business_rules_reject = {
+            "EntityID": [
+                "1099"
+            ],
+            "business_rules_reject": [
+                True
+            ]
+        }
+        dtype_mapping_testing_business_rules_reject = {
+            "EntityID": "string",
+            "business_rules_reject": "bool"
+        }
+        df_testing_source = pd.DataFrame(data_testing_source).astype(dtype_mapping_testing_source)
+        df_testing_cleanse_reject = pd.DataFrame(data_testing_cleanse_reject).astype(dtype_mapping_testing_cleanse_reject)
+        df_testing_duplicate_reject = pd.DataFrame(data_testing_duplicate_reject).astype(dtype_mapping_testing_duplicate_reject)
+        df_testing_business_rules_reject = pd.DataFrame(data_testing_business_rules_reject).astype(dtype_mapping_testing_business_rules_reject)
+        result_path = quarantine_records(csv_path, csv_data_separator, df_testing_source, [df_testing_cleanse_reject, df_testing_duplicate_reject, df_testing_business_rules_reject])
+        df_result = ingest_csv(result_path, csv_data_separator)
+        self.assertEqual(df_result.shape, (3, 4), "3 records with 4 columns should be written in the quarantine CSV.")
 
 if __name__ == "__main__":
     unittest.main()
