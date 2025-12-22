@@ -26,6 +26,7 @@ DICT_STATUS_MAPPING = {
 
 # For each tuple, the first value is CSV column, the second value is MySQL schema, the third value is data type
 LIST_SCHEMA_MAPPING = [
+    ("EntityID", "entity_id", "int"),
     ("EntityName", "entity_name", "string"),
     ("EntityType", "entity_type", "string"),
     ("RegistrationNumber", "registration_number", "string"),

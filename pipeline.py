@@ -418,8 +418,8 @@ def deduplicate_records(df_in):
     logging.info('- Checking all useful columns to decide whether it is duplicate reject case or not for each duplicate candidate group.')
     list_of_df_duplicate_candidate_group = [group for name, group in df_duplicate_candidate.groupby(["EntityName", "EntityType"])]
     for x in list_of_df_duplicate_candidate_group:
-        if x[[item[0] for item in LIST_SCHEMA_MAPPING]].duplicated(keep=False).all(axis=0):
-            df_deduplicate = pd.concat([df_deduplicate, x.drop_duplicates(subset=[item[0] for item in LIST_SCHEMA_MAPPING])], ignore_index=True)
+        if x[[item[0] for item in LIST_SCHEMA_MAPPING if item[0] != "EntityID"]].duplicated(keep=False).all(axis=0):
+            df_deduplicate = pd.concat([df_deduplicate, x.drop_duplicates(subset=[item[0] for item in LIST_SCHEMA_MAPPING if item[0] != "EntityID"])], ignore_index=True)
         else:
             df_duplicate_reject = pd.concat([df_duplicate_reject, x], ignore_index=True)
     return df_deduplicate, df_duplicate_reject
@@ -453,6 +453,8 @@ def transform_fields(df_in):
     for item in LIST_SCHEMA_MAPPING:
         logging.info(f'- Rename {item[0]} as {item[1]} and convert as {item[2]} type.')
         df_processing.rename(columns={item[0]: item[1]}, inplace=True)
+        if item[2] == "int":
+            df_processing[item[1]] = df_processing[item[1]].astype("int")
         if item[2] == "date":
             df_processing[item[1]] = pd.to_datetime(df_processing[item[1]])
     df_out = df_processing[[x[1] for x in LIST_SCHEMA_MAPPING]]
