@@ -56,6 +56,7 @@ def ingest_csv(file_path, separator):
         df (dataframe): The pandas dataframe of imported data.
     """
     df = pd.read_csv(file_path, sep=separator, dtype="string", encoding="utf-8")
+    logging.info(f'- {len(df)} records are read from the CSV.')
     return df
 
 def cleanse_data(df_original):
