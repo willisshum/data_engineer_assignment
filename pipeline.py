@@ -117,7 +117,7 @@ def process_entityName(df_processing):
     # Remove whitespace
     df_processing["EntityName"] = df_processing["EntityName"].apply(lambda x: x.strip() if x is not pd.NA else x).astype("string")
     # Validate EntityName contains value or not, reject when it is fail
-    df_processing["EntityName_reject"] = df_processing["EntityName"].apply(lambda x: True if x is pd.NA or x == "" or x == " " else False)
+    df_processing["EntityName_reject"] = df_processing["EntityName"].apply(lambda x: True if x is pd.NA or x == "" else False)
     return df_processing
 
 def process_entityType(df_processing):
