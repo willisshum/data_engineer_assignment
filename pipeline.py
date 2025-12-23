@@ -552,7 +552,10 @@ def quarantine_records(file_path, separator, df_processing, list_df_problematic_
         "cleanse_reject",
         "duplicate_reject",
         "business_rules_reject"
-        ]].any(axis=1)]
+        ]].any(axis=1)].copy(deep=True)
+
+    # For convenience to manual review by group
+    df_output = df_output.sort_values(["EntityName", "EntityType"])
 
     now = datetime.now()
     formatted_datetime = now.strftime("%Y%m%d%H%M%S")
